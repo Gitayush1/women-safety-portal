@@ -1,32 +1,35 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Navigation, Zap } from "lucide-react"
-import { useState, useEffect, useMemo } from "react"
-import dynamic from "next/dynamic"
-import type { MapMarker } from "./leaflet-map"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Navigation, Zap } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
+import type { MapMarker } from "./leaflet-map";
 
 export function LiveTrackingMap() {
-  const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 40.7589, lng: -73.9851 }) // fallback: Midtown Manhattan
-  const [geoSupported, setGeoSupported] = useState<boolean>(false)
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [center, setCenter] = useState<{ lat: number; lng: number }>({
+    lat: 40.7589,
+    lng: -73.9851,
+  }); // fallback: Midtown Manhattan
+  const [geoSupported, setGeoSupported] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "geolocation" in navigator) {
-      setGeoSupported(true)
+      setGeoSupported(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+          setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
         () => {
           // keep fallback center
         },
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 },
-      )
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+      );
     }
-  }, [])
+  }, []);
 
   const trackedUsers = [
     {
@@ -53,7 +56,15 @@ export function LiveTrackingMap() {
       lastUpdate: "1 minute ago",
       emergency: false,
     },
-  ]
+    {
+      id: "user-004",
+      name: "Amanda Wilson",
+      status: "warning",
+      location: { lat: 40.7614, lng: -73.9776, address: "Upper East Side" },
+      lastUpdate: "45 seconds ago",
+      emergency: false,
+    },
+  ];
 
   const markers: MapMarker[] = useMemo(
     () =>
@@ -67,25 +78,28 @@ export function LiveTrackingMap() {
         lastUpdate: u.lastUpdate,
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  )
+    []
+  );
 
   const DynamicLeafletMap = useMemo(
-    () => dynamic(() => import("./leaflet-map").then((m) => m.LeafletMap), { ssr: false }),
-    [],
-  )
+    () =>
+      dynamic(() => import("./leaflet-map").then((m) => m.LeafletMap), {
+        ssr: false,
+      }),
+    []
+  );
 
   const getStatusColor = (status: string, emergency: boolean) => {
-    if (emergency) return "bg-destructive text-destructive-foreground"
+    if (emergency) return "bg-destructive text-destructive-foreground";
     switch (status) {
       case "safe":
-        return "bg-green-600 text-white"
+        return "bg-green-600 text-white";
       case "warning":
-        return "bg-yellow-500 text-white"
+        return "bg-yellow-500 text-white";
       default:
-        return "bg-secondary text-secondary-foreground"
+        return "bg-secondary text-secondary-foreground";
     }
-  }
+  };
 
   return (
     <Card>
@@ -99,9 +113,13 @@ export function LiveTrackingMap() {
               onClick={() => {
                 if (geoSupported) {
                   navigator.geolocation.getCurrentPosition(
-                    (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                    () => setCenter(center), // no-op on error
-                  )
+                    (pos) =>
+                      setCenter({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                      }),
+                    () => setCenter(center) // no-op on error
+                  );
                 }
               }}
             >
@@ -112,7 +130,7 @@ export function LiveTrackingMap() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setSelectedUser((prev) => (prev ? null : prev))
+                setSelectedUser((prev) => (prev ? null : prev));
               }}
             >
               <Zap className="h-4 w-4 mr-2" />
@@ -123,7 +141,11 @@ export function LiveTrackingMap() {
       </CardHeader>
       <CardContent>
         <div className="relative">
-          <DynamicLeafletMap center={center} markers={markers} className="h-96 w-full rounded-lg border" />
+          <DynamicLeafletMap
+            center={center}
+            markers={markers}
+            className="h-96 w-full rounded-lg border"
+          />
           <div className="absolute top-4 left-4 space-y-2 bg-background/80 backdrop-blur-md p-3 rounded-lg border">
             {trackedUsers.map((user) => (
               <div
@@ -131,16 +153,24 @@ export function LiveTrackingMap() {
                 className={`p-2 rounded-lg cursor-pointer transition-all ${
                   selectedUser === user.id ? "ring-2 ring-primary" : ""
                 }`}
-                onClick={() => setSelectedUser(selectedUser === user.id ? null : user.id)}
+                onClick={() =>
+                  setSelectedUser(selectedUser === user.id ? null : user.id)
+                }
                 role="button"
                 aria-pressed={selectedUser === user.id}
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-3 h-3 rounded-full ${user.emergency ? "bg-destructive animate-pulse" : "bg-green-600"}`}
+                    className={`w-3 h-3 rounded-full ${
+                      user.emergency
+                        ? "bg-destructive animate-pulse"
+                        : "bg-green-600"
+                    }`}
                   />
                   <span className="text-sm font-medium">{user.name}</span>
-                  <Badge className={getStatusColor(user.status, user.emergency)}>
+                  <Badge
+                    className={getStatusColor(user.status, user.emergency)}
+                  >
                     {user.emergency ? "EMERGENCY" : user.status}
                   </Badge>
                 </div>
@@ -171,5 +201,5 @@ export function LiveTrackingMap() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
