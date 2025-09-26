@@ -13,7 +13,14 @@ app.use(express.json());
 app.use(cookieParser());
 
 const policeRouter = require("./routes/Policeroute");
+const reportRouter = require("./routes/ReportRoute");
+const userRouter = require("./routes/UserRoute");
+const adminRouter = require("./routes/AdminRoute");
+
 app.use("/api/police", policeRouter);
+app.use("/api/reports", reportRouter);
+app.use("/api/users", userRouter);
+app.use("/api/admin", adminRouter);
 
 connectDB()
   .then(() => {
