@@ -20,11 +20,22 @@ export function Header() {
     setBadgeNumber(badge)
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("officerName")
-    localStorage.removeItem("badgeNumber")
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      // Call backend logout API
+      await fetch('http://localhost:7777/api/police/logout', {
+        method: 'POST',
+        credentials: 'include', // Include cookies for JWT
+      })
+    } catch (err) {
+      console.error('Logout API call failed:', err)
+    } finally {
+      // Clear local storage regardless of API call result
+      localStorage.removeItem("isAuthenticated")
+      localStorage.removeItem("officerName")
+      localStorage.removeItem("badgeNumber")
+      router.push("/login")
+    }
   }
 
   return (
