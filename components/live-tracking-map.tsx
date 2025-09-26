@@ -31,40 +31,53 @@ export function LiveTrackingMap() {
     }
   }, []);
 
-  const trackedUsers = [
-    {
-      id: "user-001",
-      name: "Sarah Johnson",
-      status: "safe",
-      location: { lat: 40.7128, lng: -74.006, address: "Downtown Market" },
-      lastUpdate: "30 seconds ago",
-      emergency: false,
-    },
-    {
-      id: "user-002",
-      name: "Maria Garcia",
-      status: "emergency",
-      location: { lat: 40.7589, lng: -73.9851, address: "Central Park Area" },
-      lastUpdate: "5 seconds ago",
-      emergency: true,
-    },
-    {
-      id: "user-003",
-      name: "Jennifer Lee",
-      status: "safe",
-      location: { lat: 40.7505, lng: -73.9934, address: "Times Square" },
-      lastUpdate: "1 minute ago",
-      emergency: false,
-    },
-    {
-      id: "user-004",
-      name: "Amanda Wilson",
-      status: "warning",
-      location: { lat: 40.7614, lng: -73.9776, address: "Upper East Side" },
-      lastUpdate: "45 seconds ago",
-      emergency: false,
-    },
-  ];
+  const [trackedUsers, setTrackedUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:7777/api/users', {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          const usersWithLocation = data.users
+            .filter((user: any) => user.lastLocation)
+            .map((user: any) => ({
+              id: user._id,
+              name: user.name,
+              status: user.status,
+              location: {
+                lat: user.lastLocation.lat,
+                lng: user.lastLocation.lng,
+                address: `${user.lastLocation.lat.toFixed(4)}, ${user.lastLocation.lng.toFixed(4)}`
+              },
+              lastUpdate: formatTimeAgo(user.lastLocation.timestamp),
+              emergency: user.status === "emergency",
+            }));
+          setTrackedUsers(usersWithLocation);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  };
 
   const markers: MapMarker[] = useMemo(
     () =>
