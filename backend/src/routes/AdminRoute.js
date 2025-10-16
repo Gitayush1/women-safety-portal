@@ -8,6 +8,9 @@ const { userAuth } = require("../middlewares/auth");
 // Get admin dashboard stats
 adminRouter.get("/stats", userAuth, async (req, res) => {
   try {
+    // Get the current logged-in police station name
+    const currentStationName = req.user.policeStationName;
+    
     const [
       totalReports,
       activeReports,
@@ -16,15 +19,16 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
       totalUsers,
       emergencyReports,
     ] = await Promise.all([
-      Report.countDocuments(),
-      Report.countDocuments({ status: "active" }),
+      Report.countDocuments({ assignedStation: currentStationName }),
+      Report.countDocuments({ status: "active", assignedStation: currentStationName }),
       Report.countDocuments({ 
         status: "resolved", 
+        assignedStation: currentStationName,
         updatedAt: { $gte: new Date().setHours(0, 0, 0, 0) } 
       }),
-      Police.countDocuments(),
+      Police.countDocuments({ policeStationName: currentStationName }),
       User.countDocuments({ isActive: true }),
-      Report.countDocuments({ priority: "high", status: "active" }),
+      Report.countDocuments({ priority: "high", status: "active", assignedStation: currentStationName }),
     ]);
 
     const stats = {
@@ -34,6 +38,7 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
       totalOfficers,
       totalUsers,
       emergencyReports,
+      currentStation: currentStationName,
     };
 
     res.json({ stats });
@@ -45,7 +50,11 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
 // Get all officers
 adminRouter.get("/officers", userAuth, async (req, res) => {
   try {
-    const officers = await Police.find()
+    // Get the current logged-in police station name
+    const currentStationName = req.user.policeStationName;
+    
+    // Filter officers by the current police station
+    const officers = await Police.find({ policeStationName: currentStationName })
       .select("-password")
       .sort({ createdAt: -1 });
     
@@ -58,12 +67,17 @@ adminRouter.get("/officers", userAuth, async (req, res) => {
 // Create new officer
 adminRouter.post("/officers", userAuth, async (req, res) => {
   try {
-    const { policeStationName, badgeNumber, password } = req.body;
+    const { badgeNumber, password, latitude, longitude } = req.body;
+    
+    // Get the current logged-in police station name
+    const currentStationName = req.user.policeStationName;
 
     const officer = new Police({
-      policeStationName,
+      policeStationName: currentStationName, // Use current station name
       badgeNumber,
       password,
+      latitude: latitude || req.user.latitude, // Use provided or current station's coordinates
+      longitude: longitude || req.user.longitude,
     });
 
     const savedOfficer = await officer.save();
@@ -81,11 +95,17 @@ adminRouter.post("/officers", userAuth, async (req, res) => {
 // Update officer
 adminRouter.patch("/officers/:id", userAuth, async (req, res) => {
   try {
-    const { policeStationName, badgeNumber } = req.body;
+    const { badgeNumber } = req.body;
+    
+    // Get the current logged-in police station name
+    const currentStationName = req.user.policeStationName;
     
     const officer = await Police.findByIdAndUpdate(
       req.params.id,
-      { policeStationName, badgeNumber },
+      { 
+        badgeNumber,
+        policeStationName: currentStationName // Ensure officer stays in current station
+      },
       { new: true }
     ).select("-password");
 
@@ -117,12 +137,15 @@ adminRouter.delete("/officers/:id", userAuth, async (req, res) => {
 // Get recent activity
 adminRouter.get("/activity", userAuth, async (req, res) => {
   try {
+    // Get the current logged-in police station name
+    const currentStationName = req.user.policeStationName;
+    
     const [recentReports, recentOfficers] = await Promise.all([
-      Report.find()
+      Report.find({ assignedStation: currentStationName })
         .populate("assignedOfficer", "badgeNumber policeStationName")
         .sort({ updatedAt: -1 })
         .limit(10),
-      Police.find()
+      Police.find({ policeStationName: currentStationName })
         .select("-password")
         .sort({ updatedAt: -1 })
         .limit(5),

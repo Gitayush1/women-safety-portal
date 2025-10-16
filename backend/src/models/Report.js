@@ -44,6 +44,10 @@ const reportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Police",
     },
+    assignedStation: {
+      type: String,
+      required: true,
+    },
     coordinates: {
       lat: Number,
       lng: Number,

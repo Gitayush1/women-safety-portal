@@ -18,6 +18,7 @@ interface Officer {
 export function OfficerManagement() {
   const [officers, setOfficers] = useState<Officer[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentStation, setCurrentStation] = useState<string>("")
 
   useEffect(() => {
     const fetchOfficers = async () => {
@@ -29,6 +30,10 @@ export function OfficerManagement() {
         
         if (response.ok) {
           setOfficers(data.officers)
+          // Set current station name from the first officer (all should be from same station)
+          if (data.officers.length > 0) {
+            setCurrentStation(data.officers[0].policeStationName)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch officers:', error)
@@ -65,7 +70,14 @@ export function OfficerManagement() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Officer Management
+          <div>
+            <div>Officer Management</div>
+            {currentStation && (
+              <div className="text-sm font-normal text-muted-foreground mt-1">
+                {currentStation} Station
+              </div>
+            )}
+          </div>
           <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Officer
@@ -82,7 +94,10 @@ export function OfficerManagement() {
           {loading ? (
             <div className="text-center py-4">Loading officers...</div>
           ) : officers.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">No officers found</div>
+            <div className="text-center py-4 text-muted-foreground">
+              <div className="mb-2">No officers found</div>
+              <div className="text-sm">Add officers to your station to get started</div>
+            </div>
           ) : (
             officers.map((officer) => (
               <div key={officer._id} className="flex items-center justify-between p-3 border rounded-lg">
