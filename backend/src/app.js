@@ -23,7 +23,7 @@ app.use("/api/police", policeRouter);
 app.use("/api/reports", reportRouter);
 app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
-
+//done routes
 connectDB()
   .then(() => {
     console.log("Database connected successfully");
