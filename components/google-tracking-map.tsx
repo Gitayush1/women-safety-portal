@@ -11,6 +11,7 @@ export type TrackedUser = {
   position: LatLng
   status?: "safe" | "warning" | "emergency"
   note?: string
+  type?: "user" | "police"
 }
 
 type GoogleTrackingMapProps = {
@@ -22,7 +23,11 @@ type GoogleTrackingMapProps = {
   height?: number // in vh
 }
 
-const statusToColor = (status?: TrackedUser["status"]) => {
+const statusToColor = (status?: TrackedUser["status"], type?: TrackedUser["type"]) => {
+  if (type === "police") {
+    return { background: "#3b82f6", border: "#1d4ed8" } // blue for police
+  }
+  
   switch (status) {
     case "safe":
       return { background: "#22c55e", border: "#15803d" } // green
@@ -77,7 +82,7 @@ export default function GoogleTrackingMap({
       <APIProvider apiKey={apiKey}>
         <Map defaultZoom={zoom} defaultCenter={mapCenter} gestureHandling="greedy" disableDefaultUI={false}>
           {users.map((u) => {
-            const { background, border } = statusToColor(u.status)
+            const { background, border } = statusToColor(u.status, u.type)
             return (
               <AdvancedMarker key={u.id} position={u.position} onClick={() => setSelectedId(u.id)}>
                 <Pin background={background} borderColor={border} glyphColor="#fff" />
@@ -89,8 +94,12 @@ export default function GoogleTrackingMap({
             selectedId === u.id ? (
               <InfoWindow key={`info-${u.id}`} position={u.position} onCloseClick={() => setSelectedId(null)}>
                 <div className="min-w-40">
-                  <p className="font-medium">{u.name || "Tracked User"}</p>
-                  <p className="text-xs text-muted-foreground">Status: {u.status || "unknown"}</p>
+                  <p className="font-medium">{u.name || (u.type === "police" ? "Police Station" : "Tracked User")}</p>
+                  {u.type === "police" ? (
+                    <p className="text-xs text-blue-600 font-medium">Police Station</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Status: {u.status || "unknown"}</p>
+                  )}
                   {u.note ? <p className="mt-1 text-xs">{u.note}</p> : null}
                 </div>
               </InfoWindow>

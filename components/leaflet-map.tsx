@@ -21,6 +21,7 @@ export type MapMarker = {
   status: "safe" | "warning" | "unknown";
   emergency?: boolean;
   lastUpdate?: string;
+  type?: "user" | "police";
 };
 
 function RecenterOnChange({ center }: { center: LatLng }) {
@@ -56,14 +57,22 @@ export function LeafletMap({
       />
       <RecenterOnChange center={center} />
       {markers.map((m) => {
-        const color = m.emergency
-          ? "#ef4444"
-          : m.status === "safe"
-          ? "#16a34a"
-          : m.status === "warning"
-          ? "#eab308"
-          : "#64748b";
-        const radius = m.emergency ? 10 : 7;
+        // Different colors and styles for police stations vs users
+        let color, radius;
+        if (m.type === "police") {
+          color = "#3b82f6"; // Blue for police stations
+          radius = 8;
+        } else {
+          color = m.emergency
+            ? "#ef4444"
+            : m.status === "safe"
+            ? "#16a34a"
+            : m.status === "warning"
+            ? "#eab308"
+            : "#64748b";
+          radius = m.emergency ? 10 : 7;
+        }
+        
         return (
           <CircleMarker
             key={m.id}
@@ -74,22 +83,26 @@ export function LeafletMap({
             <Tooltip direction="top" offset={[0, -10]} opacity={1}>
               <div className="space-y-1 text-center">
                 <p className="font-semibold text-sm">{m.label}</p>
-                <p className="text-xs text-gray-600">
-                  Status:{" "}
-                  <span
-                    className={`font-medium ${
-                      m.emergency
-                        ? "text-red-600"
-                        : m.status === "safe"
-                        ? "text-green-600"
-                        : m.status === "warning"
-                        ? "text-yellow-600"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    {m.emergency ? "EMERGENCY" : m.status.toUpperCase()}
-                  </span>
-                </p>
+                {m.type === "police" ? (
+                  <p className="text-xs text-blue-600 font-medium">POLICE STATION</p>
+                ) : (
+                  <p className="text-xs text-gray-600">
+                    Status:{" "}
+                    <span
+                      className={`font-medium ${
+                        m.emergency
+                          ? "text-red-600"
+                          : m.status === "safe"
+                          ? "text-green-600"
+                          : m.status === "warning"
+                          ? "text-yellow-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {m.emergency ? "EMERGENCY" : m.status.toUpperCase()}
+                    </span>
+                  </p>
+                )}
                 {m.address && (
                   <p className="text-xs text-gray-500">{m.address}</p>
                 )}
@@ -103,6 +116,9 @@ export function LeafletMap({
             <Popup>
               <div className="space-y-1">
                 <p className="font-medium">{m.label}</p>
+                {m.type === "police" ? (
+                  <p className="text-sm text-blue-600 font-medium">Police Station</p>
+                ) : null}
                 {m.address ? (
                   <p className="text-sm text-muted-foreground">{m.address}</p>
                 ) : null}

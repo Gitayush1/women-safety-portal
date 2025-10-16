@@ -32,18 +32,20 @@ export function LiveTrackingMap() {
   }, []);
 
   const [trackedUsers, setTrackedUsers] = useState<any[]>([]);
+  const [policeStations, setPoliceStations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:7777/api/users', {
+        // Fetch users
+        const usersResponse = await fetch('http://localhost:7777/api/users', {
           credentials: 'include',
         });
-        const data = await response.json();
+        const usersData = await usersResponse.json();
         
-        if (response.ok) {
-          const usersWithLocation = data.users
+        if (usersResponse.ok) {
+          const usersWithLocation = usersData.users
             .filter((user: any) => user.lastLocation)
             .map((user: any) => ({
               id: user._id,
@@ -59,14 +61,33 @@ export function LiveTrackingMap() {
             }));
           setTrackedUsers(usersWithLocation);
         }
+
+        // Fetch police stations
+        const policeResponse = await fetch('http://localhost:7777/api/police/stations');
+        const policeData = await policeResponse.json();
+        
+        if (policeResponse.ok) {
+          const stationsWithLocation = policeData.policeStations.map((station: any) => ({
+            id: station._id,
+            name: station.policeStationName,
+            badgeNumber: station.badgeNumber,
+            location: {
+              lat: station.latitude,
+              lng: station.longitude,
+              address: `${station.latitude.toFixed(4)}, ${station.longitude.toFixed(4)}`
+            },
+            type: "police"
+          }));
+          setPoliceStations(stationsWithLocation);
+        }
       } catch (error) {
-        console.error('Failed to fetch users:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchData();
   }, []);
 
   const formatTimeAgo = (dateString: string) => {
@@ -80,8 +101,9 @@ export function LiveTrackingMap() {
   };
 
   const markers: MapMarker[] = useMemo(
-    () =>
-      trackedUsers.map((u) => ({
+    () => [
+      // User markers
+      ...trackedUsers.map((u) => ({
         id: u.id,
         label: u.name,
         position: u.location,
@@ -89,9 +111,21 @@ export function LiveTrackingMap() {
         status: (u.status as "safe" | "warning" | "unknown") || "unknown",
         emergency: u.emergency,
         lastUpdate: u.lastUpdate,
+        type: "user" as const,
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+      // Police station markers
+      ...policeStations.map((station) => ({
+        id: station.id,
+        label: station.name,
+        position: station.location,
+        address: station.location.address,
+        status: "safe" as const,
+        emergency: false,
+        lastUpdate: undefined,
+        type: "police" as const,
+      })),
+    ],
+    [trackedUsers, policeStations]
   );
 
   const DynamicLeafletMap = useMemo(
@@ -199,6 +233,10 @@ export function LiveTrackingMap() {
         </div>
 
         <div className="mt-4 flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-600" />
+            <span>Police Station</span>
+          </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-600" />
             <span>Safe</span>

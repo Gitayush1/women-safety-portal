@@ -7,12 +7,13 @@ const {userAuth}  = require("../middlewares/auth");
 //signup API
 policeRouter.post("/signup", async (req, res) => {
   try {
-    const { policeStationName, badgeNumber, password } = req.body;
-
+    const { policeStationName, badgeNumber, password, latitude, longitude } = req.body;
     const police = new Police({
       policeStationName,
       badgeNumber,
       password: password, // Let the pre-save middleware handle hashing
+      latitude,
+      longitude,
     });
 
     const savedPolice = await police.save();
@@ -45,6 +46,21 @@ policeRouter.post("/login", async(req, res) => {
   }
   catch(err){
     res.status(400).json({error: "Error message is: " + err.message});
+  }
+});
+
+//Get all police stations API
+policeRouter.get("/stations", async (req, res) => {
+  try {
+    const policeStations = await Police.find({}, { 
+      policeStationName: 1, 
+      latitude: 1, 
+      longitude: 1, 
+      badgeNumber: 1 
+    });
+    res.json({ policeStations });
+  } catch (err) {
+    res.status(400).json({ error: "Error fetching police stations: " + err.message });
   }
 });
 

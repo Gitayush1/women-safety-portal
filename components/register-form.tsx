@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Lock, User, Building, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Lock, User, Building, AlertCircle, MapPin } from "lucide-react"
 import Link from "next/link"
 
 export function RegisterForm() {
@@ -21,6 +21,8 @@ export function RegisterForm() {
     badgeNumber: "",
     password: "",
     confirmPassword: "",
+    latitude: "",
+    longitude: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,6 +55,8 @@ export function RegisterForm() {
           policeStationName: formData.policeStationName,
           badgeNumber: formData.badgeNumber,
           password: formData.password,
+          latitude: parseFloat(formData.latitude),
+          longitude: parseFloat(formData.longitude),
         }),
       })
 
@@ -83,6 +87,7 @@ export function RegisterForm() {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (error) setError("") // Clear error when user starts typing
   }
+
 
   return (
     <Card>
@@ -128,6 +133,44 @@ export function RegisterForm() {
                 required
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g., 30.482576"
+                  value={formData.latitude}
+                  onChange={(e) => handleInputChange("latitude", e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g., 77.806039"
+                  value={formData.longitude}
+                  onChange={(e) => handleInputChange("longitude", e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <p>Enter the exact latitude and longitude coordinates of the police station</p>
           </div>
 
           <div className="space-y-2">
