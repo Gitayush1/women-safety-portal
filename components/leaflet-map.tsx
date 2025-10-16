@@ -46,7 +46,7 @@ export function LeafletMap({
   return (
     <MapContainer
       center={[center.lat, center.lng]}
-      zoom={13}
+      zoom={9}
       className={className || "h-96 w-full rounded-lg"}
       scrollWheelZoom
       style={{ outline: "none" }}
@@ -72,7 +72,7 @@ export function LeafletMap({
             : "#64748b";
           radius = m.emergency ? 10 : 7;
         }
-        
+
         return (
           <CircleMarker
             key={m.id}
@@ -84,7 +84,9 @@ export function LeafletMap({
               <div className="space-y-1 text-center">
                 <p className="font-semibold text-sm">{m.label}</p>
                 {m.type === "police" ? (
-                  <p className="text-xs text-blue-600 font-medium">POLICE STATION</p>
+                  <p className="text-xs text-blue-600 font-medium">
+                    POLICE STATION
+                  </p>
                 ) : (
                   <p className="text-xs text-gray-600">
                     Status:{" "}
@@ -117,7 +119,9 @@ export function LeafletMap({
               <div className="space-y-1">
                 <p className="font-medium">{m.label}</p>
                 {m.type === "police" ? (
-                  <p className="text-sm text-blue-600 font-medium">Police Station</p>
+                  <p className="text-sm text-blue-600 font-medium">
+                    Police Station
+                  </p>
                 ) : null}
                 {m.address ? (
                   <p className="text-sm text-muted-foreground">{m.address}</p>
