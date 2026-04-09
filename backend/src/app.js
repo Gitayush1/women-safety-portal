@@ -16,13 +16,13 @@ app.use(cookieParser());
 
 const policeRouter = require("./routes/Policeroute");
 const reportRouter = require("./routes/ReportRoute");
-const userRouter = require("./routes/UserRoute");
 const adminRouter = require("./routes/AdminRoute");
+const trackingRouter = require("./routes/TrackingRoute");
 
 app.use("/api/police", policeRouter);
 app.use("/api/reports", reportRouter);
-app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/tracking", trackingRouter);
 //done routes
 connectDB()
   .then(() => {

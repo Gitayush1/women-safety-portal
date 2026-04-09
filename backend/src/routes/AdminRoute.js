@@ -2,7 +2,6 @@ const express = require("express");
 const adminRouter = express.Router();
 const Police = require("../models/Police");
 const Report = require("../models/Report");
-const User = require("../models/User");
 const { userAuth } = require("../middlewares/auth");
 
 // Get admin dashboard stats
@@ -16,7 +15,6 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
       activeReports,
       resolvedToday,
       totalOfficers,
-      totalUsers,
       emergencyReports,
     ] = await Promise.all([
       Report.countDocuments({ assignedStation: currentStationName }),
@@ -27,7 +25,6 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
         updatedAt: { $gte: new Date().setHours(0, 0, 0, 0) } 
       }),
       Police.countDocuments({ policeStationName: currentStationName }),
-      User.countDocuments({ isActive: true }),
       Report.countDocuments({ priority: "high", status: "active", assignedStation: currentStationName }),
     ]);
 
@@ -36,7 +33,7 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
       activeReports,
       resolvedToday,
       totalOfficers,
-      totalUsers,
+      totalUsers: 0,
       emergencyReports,
       currentStation: currentStationName,
     };

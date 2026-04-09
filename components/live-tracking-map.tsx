@@ -8,7 +8,14 @@ import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { MapMarker } from "./leaflet-map";
 
-export function LiveTrackingMap() {
+type TrackingViewMode = "all" | "emergency";
+
+interface LiveTrackingMapProps {
+  viewMode: TrackingViewMode;
+  refreshKey: number;
+}
+
+export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [center, setCenter] = useState<{ lat: number; lng: number }>({
     lat: 32.437867,
@@ -37,51 +44,37 @@ export function LiveTrackingMap() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        // Fetch users
-        const usersResponse = await fetch("http://localhost:7777/api/users", {
+        const usersEndpoint =
+          viewMode === "emergency"
+            ? "http://localhost:7777/api/tracking/emergency"
+            : "http://localhost:7777/api/tracking/users";
+        const usersResponse = await fetch(usersEndpoint, {
           credentials: "include",
         });
         const usersData = await usersResponse.json();
 
         if (usersResponse.ok) {
-          const baseLat = 32.437867;
-          const baseLng = 77.577168;
-          // Spread users across Himachal Pradesh
-          const offsets = [
-            { dLat: 0.45, dLng: -0.5 }, // Kullu/Manali belt
-            { dLat: -0.32, dLng: 0.61 }, // towards Kinnaur
-            { dLat: 0.18, dLng: 0.25 }, // north-east
-            { dLat: -0.6, dLng: -0.3 }, // Hamirpur/Una side
-            { dLat: 0.7, dLng: 0.15 }, // Lahaul/Spiti
-            { dLat: -0.25, dLng: -0.75 }, // Kangra side
-          ];
-          const indianNames = [
-            "Priya Sharma",
-            "Aisha Khan",
-            "Neha Verma",
-            "Anjali Patel",
-          ];
-
           const usersWithLocation = usersData.users
             .filter((user: any) => user.lastLocation)
-            .map((user: any, idx: number) => {
-              const lat = baseLat + offsets[idx % offsets.length].dLat;
-              const lng = baseLng + offsets[idx % offsets.length].dLng;
-              return {
-                id: user._id,
-                name: indianNames[idx % indianNames.length],
-                status: user.status,
-                location: {
-                  lat,
-                  lng,
-                  address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-                },
-                lastUpdate: formatTimeAgo(user.lastLocation.timestamp),
-                emergency: user.status === "emergency",
-              };
-            });
+            .map((user: any) => ({
+              id: user._id,
+              name: user.name,
+              status: user.status,
+              location: {
+                lat: user.lastLocation.lat,
+                lng: user.lastLocation.lng,
+                address: `${user.lastLocation.lat.toFixed(
+                  4
+                )}, ${user.lastLocation.lng.toFixed(4)}`,
+              },
+              lastUpdate: formatTimeAgo(user.lastLocation.timestamp),
+              emergency: user.status === "emergency",
+            }));
           setTrackedUsers(usersWithLocation);
+        } else {
+          setTrackedUsers([]);
         }
 
         // Fetch police stations
@@ -110,67 +103,7 @@ export function LiveTrackingMap() {
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        // Fallback across Himachal Pradesh around provided center
-        const baseLat = 32.437867;
-        const baseLng = 77.577168;
-        setTrackedUsers([
-          {
-            id: "1",
-            name: "Priya Sharma",
-            status: "emergency",
-            location: {
-              lat: baseLat + 0.45,
-              lng: baseLng - 0.5,
-              address: `${(baseLat + 0.45).toFixed(4)}, ${(
-                baseLng - 0.5
-              ).toFixed(4)}`,
-            },
-            lastUpdate: "2 minutes ago",
-            emergency: true,
-          },
-          {
-            id: "2",
-            name: "Aisha Khan",
-            status: "warning",
-            location: {
-              lat: baseLat - 0.32,
-              lng: baseLng + 0.61,
-              address: `${(baseLat - 0.32).toFixed(4)}, ${(
-                baseLng + 0.61
-              ).toFixed(4)}`,
-            },
-            lastUpdate: "12 minutes ago",
-            emergency: false,
-          },
-          {
-            id: "3",
-            name: "Neha Verma",
-            status: "safe",
-            location: {
-              lat: baseLat + 0.18,
-              lng: baseLng + 0.25,
-              address: `${(baseLat + 0.18).toFixed(4)}, ${(
-                baseLng + 0.25
-              ).toFixed(4)}`,
-            },
-            lastUpdate: "1 hour ago",
-            emergency: false,
-          },
-          {
-            id: "4",
-            name: "Anjali Patel",
-            status: "safe",
-            location: {
-              lat: baseLat - 0.6,
-              lng: baseLng - 0.3,
-              address: `${(baseLat - 0.6).toFixed(4)}, ${(
-                baseLng - 0.3
-              ).toFixed(4)}`,
-            },
-            lastUpdate: "25 minutes ago",
-            emergency: false,
-          },
-        ]);
+        setTrackedUsers([]);
         setPoliceStations([
           {
             id: "ps1",
@@ -205,7 +138,7 @@ export function LiveTrackingMap() {
     };
 
     fetchData();
-  }, []);
+  }, [viewMode, refreshKey]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);

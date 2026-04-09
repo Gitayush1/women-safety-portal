@@ -26,125 +26,43 @@ interface User {
   updatedAt: string;
 }
 
-export function ActiveTracking() {
+type TrackingViewMode = "all" | "emergency";
+
+interface ActiveTrackingProps {
+  viewMode: TrackingViewMode;
+  refreshKey: number;
+}
+
+export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
       try {
-        const response = await fetch("http://localhost:7777/api/users", {
-          credentials: "include",
-        });
+        const endpoint =
+          viewMode === "emergency"
+            ? "http://localhost:7777/api/tracking/emergency"
+            : "http://localhost:7777/api/tracking/users";
+        const response = await fetch(endpoint, { credentials: "include" });
         const data = await response.json();
 
         if (response.ok) {
-          const indianNames = [
-            "Priya Sharma",
-            "Aisha Khan",
-            "Neha Verma",
-            "Anjali Patel",
-          ];
-          const indianPhones = [
-            "+91 98765 43210",
-            "+91 91234 56780",
-            "+91 90123 45678",
-            "+91 98888 12345",
-          ];
-          const baseLat = 32.437867;
-          const baseLng = 77.577168;
-          const offsets = [
-            { dLat: 0.0045, dLng: -0.005 },
-            { dLat: -0.0032, dLng: 0.0061 },
-            { dLat: 0.0018, dLng: 0.0025 },
-            { dLat: -0.006, dLng: -0.003 },
-          ];
-
-          const firstFour = (data.users || [])
-            .slice(0, 4)
-            .map((u: any, idx: number) => ({
-              ...u,
-              name: indianNames[idx % indianNames.length],
-              phone: indianPhones[idx % indianPhones.length],
-              lastLocation: u.lastLocation
-                ? {
-                    ...u.lastLocation,
-                    lat: baseLat + offsets[idx % offsets.length].dLat,
-                    lng: baseLng + offsets[idx % offsets.length].dLng,
-                  }
-                : {
-                    lat: baseLat + offsets[idx % offsets.length].dLat,
-                    lng: baseLng + offsets[idx % offsets.length].dLng,
-                    timestamp: new Date().toISOString(),
-                  },
-            }));
-
-          setActiveUsers(firstFour); // Show only first 4 users with Indian context
+          setActiveUsers((data.users || []).slice(0, 8));
+        } else {
+          setActiveUsers([]);
         }
       } catch (error) {
         console.error("Failed to fetch users:", error);
-        // Fallback to Indian-context mock users
-        setActiveUsers([
-          {
-            _id: "u1",
-            name: "Priya Sharma",
-            phone: "+91 98765 43210",
-            status: "emergency",
-            lastLocation: {
-              lat: 28.6139,
-              lng: 77.209,
-              timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-            },
-            batteryLevel: 18,
-            updatedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-          },
-          {
-            _id: "u2",
-            name: "Aisha Khan",
-            phone: "+91 91234 56780",
-            status: "warning",
-            lastLocation: {
-              lat: 28.6205,
-              lng: 77.2303,
-              timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-            },
-            batteryLevel: 42,
-            updatedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          },
-          {
-            _id: "u3",
-            name: "Neha Verma",
-            phone: "+91 90123 45678",
-            status: "safe",
-            lastLocation: {
-              lat: 28.6001,
-              lng: 77.2007,
-              timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-            },
-            batteryLevel: 67,
-            updatedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-          },
-          {
-            _id: "u4",
-            name: "Anjali Patel",
-            phone: "+91 98888 12345",
-            status: "safe",
-            lastLocation: {
-              lat: 19.076,
-              lng: 72.8777,
-              timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-            }, // Mumbai
-            batteryLevel: 84,
-            updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          },
-        ]);
+        setActiveUsers([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [viewMode, refreshKey]);
 
   const formatDuration = (dateString: string) => {
     const date = new Date(dateString);
@@ -191,7 +109,7 @@ export function ActiveTracking() {
           <div className="text-center py-4">Loading users...</div>
         ) : activeUsers.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
-            No active users found
+            No {viewMode === "emergency" ? "emergency" : "active"} users found
           </div>
         ) : (
           activeUsers.map((user) => (
@@ -224,14 +142,14 @@ export function ActiveTracking() {
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {user.lastLocation
-                    ? `${user.lastLocation.lat.toFixed(
-                        4
-                      )}, ${user.lastLocation.lng.toFixed(4)}`
-                    : "No location"}
-                </div>
+                {user.lastLocation ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {`${user.lastLocation.lat.toFixed(
+                      4
+                    )}, ${user.lastLocation.lng.toFixed(4)}`}
+                  </div>
+                ) : null}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   Tracking for {formatDuration(user.updatedAt)}
