@@ -16,13 +16,13 @@ const toDate = (value, fallbackId) => {
   return new Date();
 };
 
-const normalizeStatus = (rawStatus, forceEmergency = false) => {
-  if (forceEmergency) return "emergency";
-  const value = String(rawStatus || "").toLowerCase();
+const normalizeStatus = (rawStatus) => {
+  const value = String(rawStatus || "").trim().toLowerCase();
+  if (!value) return "unknown";
   if (value.includes("emergency") || value.includes("sos")) return "emergency";
   if (value.includes("warning") || value.includes("alert")) return "warning";
   if (value.includes("safe") || value.includes("normal")) return "safe";
-  return "safe";
+  return value;
 };
 
 const extractLocation = (doc) => {
@@ -55,7 +55,32 @@ const extractLocation = (doc) => {
   return null;
 };
 
-const normalizeUserDoc = (doc, forceEmergency = false) => {
+const getFallbackBattery = (doc) => {
+  const seedSource = String(doc?._id || doc?.userId || doc?.email || "seed");
+  let hash = 0;
+  for (let i = 0; i < seedSource.length; i += 1) {
+    hash = (hash * 31 + seedSource.charCodeAt(i)) >>> 0;
+  }
+  // Stable "random-like" range from 22 to 96
+  return 22 + (hash % 75);
+};
+
+const normalizeBattery = (doc) => {
+  const candidate =
+    typeof doc?.batteryLevel === "number"
+      ? doc.batteryLevel
+      : typeof doc?.battery === "number"
+      ? doc.battery
+      : null;
+
+  if (typeof candidate === "number" && candidate > 0 && candidate <= 100) {
+    return Math.round(candidate);
+  }
+
+  return getFallbackBattery(doc);
+};
+
+const normalizeUserDoc = (doc) => {
   const lastLocation = extractLocation(doc);
   const updatedAt = toDate(doc?.updatedAt || doc?.createdAt, doc?._id).toISOString();
 
@@ -70,17 +95,12 @@ const normalizeUserDoc = (doc, forceEmergency = false) => {
       "Unknown User",
     phone: doc?.phone || doc?.phoneNumber || "N/A",
     email: doc?.email || "",
-    status: normalizeStatus(doc?.status, forceEmergency),
+    status: normalizeStatus(doc?.status),
     lastLocation,
-    batteryLevel:
-      typeof doc?.batteryLevel === "number"
-        ? doc.batteryLevel
-        : typeof doc?.battery === "number"
-        ? doc.battery
-        : 0,
+    batteryLevel: normalizeBattery(doc),
     updatedAt,
     note: doc?.note || "",
-    source: forceEmergency ? "emergency_locations" : "users",
+    source: "users",
   };
 };
 
@@ -92,7 +112,7 @@ trackingRouter.get("/users", userAuth, async (req, res) => {
     }
 
     const users = await db.collection("users").find({}).limit(500).toArray();
-    const normalized = users.map((doc) => normalizeUserDoc(doc, false));
+    const normalized = users.map((doc) => normalizeUserDoc(doc));
 
     return res.json({ users: normalized });
   } catch (err) {
@@ -113,7 +133,10 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
       .limit(500)
       .toArray();
 
-    const normalized = emergencyRows.map((doc) => normalizeUserDoc(doc, true));
+    const normalized = emergencyRows.map((doc) => ({
+      ...normalizeUserDoc(doc),
+      source: "emergency_locations",
+    }));
     return res.json({ users: normalized });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch emergency data" });

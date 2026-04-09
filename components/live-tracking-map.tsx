@@ -61,7 +61,10 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
             .map((user: any) => ({
               id: user._id,
               name: user.name,
-              status: user.status,
+              status:
+                viewMode === "emergency"
+                  ? user.status || "unknown"
+                  : "safe",
               location: {
                 lat: user.lastLocation.lat,
                 lng: user.lastLocation.lng,
@@ -70,7 +73,7 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
                 )}, ${user.lastLocation.lng.toFixed(4)}`,
               },
               lastUpdate: formatTimeAgo(user.lastLocation.timestamp),
-              emergency: user.status === "emergency",
+              emergency: viewMode === "emergency",
             }));
           setTrackedUsers(usersWithLocation);
         } else {

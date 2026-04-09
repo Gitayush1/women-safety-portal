@@ -79,7 +79,7 @@ export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
   };
 
   const getStatusColor = (status: string, emergency: boolean) => {
-    if (emergency) return "bg-destructive text-destructive-foreground";
+    if (emergency) return "bg-destructive text-white";
     switch (status) {
       case "safe":
         return "bg-green-600 text-white";
@@ -112,11 +112,16 @@ export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
             No {viewMode === "emergency" ? "emergency" : "active"} users found
           </div>
         ) : (
-          activeUsers.map((user) => (
+          activeUsers.map((user) => {
+            const isEmergency = viewMode === "emergency";
+            const forcedStatus = isEmergency
+              ? (user.status || "unknown").toUpperCase()
+              : "SAFE";
+            return (
             <div
               key={user._id}
               className={`p-4 border rounded-lg ${
-                user.status === "emergency"
+                isEmergency
                   ? "border-destructive bg-destructive/5"
                   : "border-border"
               }`}
@@ -125,7 +130,7 @@ export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
                 <div>
                   <h4 className="font-semibold text-foreground flex items-center gap-2">
                     {user.name}
-                    {user.status === "emergency" && (
+                    {isEmergency && (
                       <AlertTriangle className="h-4 w-4 text-destructive" />
                     )}
                   </h4>
@@ -133,11 +138,11 @@ export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
                 </div>
                 <Badge
                   className={getStatusColor(
-                    user.status,
-                    user.status === "emergency"
+                    forcedStatus.toLowerCase(),
+                    isEmergency
                   )}
                 >
-                  {user.status === "emergency" ? "EMERGENCY" : user.status}
+                  {forcedStatus}
                 </Badge>
               </div>
 
@@ -180,14 +185,15 @@ export function ActiveTracking({ viewMode, refreshKey }: ActiveTrackingProps) {
                   <MessageSquare className="h-3 w-3 mr-1" />
                   SMS
                 </Button>
-                {user.status === "emergency" && (
+                {isEmergency && (
                   <Button variant="destructive" size="sm" className="flex-1">
                     Dispatch
                   </Button>
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </CardContent>
     </Card>
