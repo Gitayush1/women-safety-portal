@@ -18,11 +18,13 @@ const policeRouter = require("./routes/Policeroute");
 const reportRouter = require("./routes/ReportRoute");
 const adminRouter = require("./routes/AdminRoute");
 const trackingRouter = require("./routes/TrackingRoute");
+const riskDetectionRouter = require("./routes/RiskDetectionRoute");
 
 app.use("/api/police", policeRouter);
 app.use("/api/reports", reportRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/tracking", trackingRouter);
+app.use("/api/risk-detection", riskDetectionRouter);
 //done routes
 connectDB()
   .then(() => {

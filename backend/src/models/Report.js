@@ -20,6 +20,14 @@ const reportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    voiceTranscript: {
+      type: String,
+      trim: true,
+    },
+    voiceUrl: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       required: true,
@@ -48,6 +56,17 @@ const reportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    assignedStationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Police",
+      required: true,
+    },
+    linkedStationIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Police",
+      },
+    ],
     coordinates: {
       lat: Number,
       lng: Number,
