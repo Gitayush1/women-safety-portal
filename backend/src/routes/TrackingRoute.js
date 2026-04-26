@@ -6,6 +6,9 @@ const {
 } = require("../risk-detection/services/riskDetectionService");
 
 const trackingRouter = express.Router();
+const RISK_CACHE_TTL_MS = 2 * 60 * 1000;
+const RISK_CACHE_MAX_ITEMS = 1000;
+const riskCache = new Map();
 
 const toDate = (value, fallbackId) => {
   if (value instanceof Date) return value;
@@ -122,6 +125,38 @@ const buildRiskInputText = (doc) => {
   return parts.join(". ");
 };
 
+const buildRiskCacheKey = (doc, text, voiceTranscript) => {
+  const id = String(doc?._id || "");
+  const updatedAt = String(doc?.updatedAt || doc?.time || doc?.createdAt || "");
+  return `${id}|${updatedAt}|${text}|${voiceTranscript}`;
+};
+
+const getCachedRisk = (cacheKey) => {
+  const cached = riskCache.get(cacheKey);
+  if (!cached) return null;
+
+  if (Date.now() - cached.cachedAt > RISK_CACHE_TTL_MS) {
+    riskCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.result;
+};
+
+const setCachedRisk = (cacheKey, result) => {
+  if (riskCache.size >= RISK_CACHE_MAX_ITEMS) {
+    const oldestKey = riskCache.keys().next().value;
+    if (oldestKey) {
+      riskCache.delete(oldestKey);
+    }
+  }
+
+  riskCache.set(cacheKey, {
+    cachedAt: Date.now(),
+    result,
+  });
+};
+
 const buildTrackedUser = async (doc) => {
   const normalizedUser = {
     ...normalizeUserDoc(doc),
@@ -137,7 +172,15 @@ const buildTrackedUser = async (doc) => {
   }
 
   try {
-    const riskResult = await detectEmergencyRisk({ text, voiceTranscript });
+    const cacheKey = buildRiskCacheKey(doc, text, voiceTranscript);
+    const cachedRisk = getCachedRisk(cacheKey);
+    const riskResult =
+      cachedRisk || (await detectEmergencyRisk({ text, voiceTranscript }));
+
+    if (!cachedRisk) {
+      setCachedRisk(cacheKey, riskResult);
+    }
+
     return {
       ...normalizedUser,
       status: mapRiskToStatus(riskResult?.riskLevel),
