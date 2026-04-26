@@ -1,6 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const { userAuth } = require("../middlewares/auth");
+const {
+  detectEmergencyRisk,
+} = require("../risk-detection/services/riskDetectionService");
 
 const trackingRouter = express.Router();
 
@@ -104,6 +107,146 @@ const normalizeUserDoc = (doc) => {
   };
 };
 
+const mapRiskToStatus = (riskLevel) => {
+  const level = String(riskLevel || "").toLowerCase();
+  if (level === "high") return "emergency";
+  if (level === "medium") return "warning";
+  if (level === "low") return "safe";
+  return "unknown";
+};
+
+const buildRiskInputText = (doc) => {
+  const parts = [doc?.description, doc?.location].filter(
+    (value) => typeof value === "string" && value.trim()
+  );
+  return parts.join(". ");
+};
+
+const buildTrackedUser = async (doc) => {
+  const normalizedUser = {
+    ...normalizeUserDoc(doc),
+    source: "emergency_locations",
+  };
+
+  const text = buildRiskInputText(doc);
+  const voiceTranscript =
+    typeof doc?.voiceTranscript === "string" ? doc.voiceTranscript : "";
+
+  if (!text && !voiceTranscript) {
+    return normalizedUser;
+  }
+
+  try {
+    const riskResult = await detectEmergencyRisk({ text, voiceTranscript });
+    return {
+      ...normalizedUser,
+      status: mapRiskToStatus(riskResult?.riskLevel),
+      aiRisk: {
+        level: riskResult?.riskLevel,
+        priority: riskResult?.priority,
+        confidence: riskResult?.confidence,
+        reason: riskResult?.reason,
+        flaggedForReview: Boolean(riskResult?.flaggedForReview),
+      },
+    };
+  } catch (error) {
+    return normalizedUser;
+  }
+};
+
+const extractComparableIds = (value) => {
+  if (value === null || value === undefined) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => extractComparableIds(entry));
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return [String(value)];
+  }
+
+  if (value instanceof mongoose.Types.ObjectId) {
+    return [String(value)];
+  }
+
+  if (typeof value === "object") {
+    const ids = [];
+    if (typeof value.toHexString === "function") {
+      ids.push(String(value.toHexString()));
+    }
+    if (value.$oid) ids.push(String(value.$oid));
+    if (value._id) ids.push(...extractComparableIds(value._id));
+    if (value.id) ids.push(...extractComparableIds(value.id));
+    if (typeof value.toString === "function") {
+      const asString = String(value.toString());
+      if (/^[a-fA-F0-9]{24}$/.test(asString)) {
+        ids.push(asString);
+      }
+    }
+    return ids;
+  }
+
+  return [];
+};
+
+const extractComparableNames = (value) => {
+  if (value === null || value === undefined) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => extractComparableNames(entry));
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    return [String(value).trim().toLowerCase()];
+  }
+  if (typeof value === "object") {
+    const names = [];
+    if (value.name) names.push(...extractComparableNames(value.name));
+    if (value.stationName) names.push(...extractComparableNames(value.stationName));
+    if (value.policeStationName) {
+      names.push(...extractComparableNames(value.policeStationName));
+    }
+    if (value.assignedStation) {
+      names.push(...extractComparableNames(value.assignedStation));
+    }
+    return names;
+  }
+  return [];
+};
+
+const isAssignedToStation = (doc, station) => {
+  const stationIdString = String(station?._id || "");
+  const stationBadge = String(station?.badgeNumber || "").trim();
+  const stationName = String(station?.policeStationName || "")
+    .trim()
+    .toLowerCase();
+  const hasStationId = Boolean(stationIdString);
+  const hasStationBadge = Boolean(stationBadge);
+  const hasStationName = Boolean(stationName);
+  if (!hasStationId && !hasStationBadge && !hasStationName) return false;
+
+  const stationFields = [
+    doc?.stationId,
+    doc?.assignedStationId,
+    doc?.dedicatedStationId,
+    doc?.linkedStationIds,
+  ];
+  const stationNameFields = [
+    doc?.assignedStation,
+    doc?.stationName,
+    doc?.policeStationName,
+    doc?.linkedStations,
+  ];
+
+  const allIds = stationFields.flatMap((entry) => extractComparableIds(entry));
+  const allNames = stationNameFields.flatMap((entry) =>
+    extractComparableNames(entry)
+  );
+
+  const idMatch = hasStationId && allIds.includes(stationIdString);
+  const badgeMatch = hasStationBadge && allIds.includes(stationBadge);
+  const nameMatch = hasStationName && allNames.includes(stationName);
+  return idMatch || badgeMatch || nameMatch;
+};
+
 trackingRouter.get("/users", userAuth, async (req, res) => {
   try {
     const db = mongoose.connection.db;
@@ -111,12 +254,22 @@ trackingRouter.get("/users", userAuth, async (req, res) => {
       return res.status(503).json({ error: "Database not ready" });
     }
 
-    const users = await db.collection("users").find({}).limit(500).toArray();
-    const normalized = users.map((doc) => normalizeUserDoc(doc));
+    const station = req.user;
+    const emergencyRows = await db
+      .collection("emergency_locations")
+      .find({})
+      .limit(500)
+      .toArray();
+    const stationDocs = emergencyRows.filter((doc) =>
+      isAssignedToStation(doc, station)
+    );
+    const stationUsers = await Promise.all(
+      stationDocs.map((doc) => buildTrackedUser(doc))
+    );
 
-    return res.json({ users: normalized });
+    return res.json({ users: stationUsers });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch users data" });
+    return res.status(500).json({ error: "Failed to fetch tracking data" });
   }
 });
 
@@ -127,16 +280,20 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
       return res.status(503).json({ error: "Database not ready" });
     }
 
+    const station = req.user;
     const emergencyRows = await db
       .collection("emergency_locations")
       .find({})
       .limit(500)
       .toArray();
 
-    const normalized = emergencyRows.map((doc) => ({
-      ...normalizeUserDoc(doc),
-      source: "emergency_locations",
-    }));
+    const stationDocs = emergencyRows.filter((doc) =>
+      isAssignedToStation(doc, station)
+    );
+    const normalized = (await Promise.all(
+      stationDocs.map((doc) => buildTrackedUser(doc))
+    ))
+      .filter((doc) => doc.status === "emergency");
     return res.json({ users: normalized });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch emergency data" });
