@@ -111,6 +111,8 @@ async function upsertReportFromEmergencyLocation({ doc, station, riskAnalysis })
     priority: riskAnalysis?.riskLevel || "medium",
     riskConfidence: riskAnalysis?.confidence,
     riskReason: riskAnalysis?.reason,
+    riskSource: riskAnalysis?.debug?.source,
+    riskFallbackReason: riskAnalysis?.debug?.fallbackReason,
     reporterName: pickString(doc?.name, doc?.username, doc?.userName, doc?.userId, "Unknown User"),
     reporterPhone: pickString(doc?.phone, doc?.phoneNumber, "N/A"),
     assignedStationId: station._id,

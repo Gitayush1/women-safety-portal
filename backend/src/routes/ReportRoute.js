@@ -122,6 +122,10 @@ reportRouter.post("/", userAuth, async (req, res) => {
       voiceUrl,
       // Priority is AI-driven and not accepted from client payload.
       priority: riskAnalysis.riskLevel,
+      riskConfidence: riskAnalysis.confidence,
+      riskReason: riskAnalysis.reason,
+      riskSource: riskAnalysis.debug?.source,
+      riskFallbackReason: riskAnalysis.debug?.fallbackReason,
       reporterName,
       reporterPhone,
       assignedStationId,

@@ -60,6 +60,8 @@ async function detectEmergencyRisk(payload = {}) {
     debug: {
       modelPrediction,
       topSimilarity,
+      source: modelPrediction.source,
+      fallbackReason: modelPrediction.fallbackReason,
     },
   };
 }

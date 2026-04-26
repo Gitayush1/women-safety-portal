@@ -49,6 +49,14 @@ const reportSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    riskSource: {
+      type: String,
+      enum: ["llm", "heuristic"],
+    },
+    riskFallbackReason: {
+      type: String,
+      trim: true,
+    },
     source: {
       type: String,
       enum: ["manual", "emergency_locations"],

@@ -12,7 +12,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "check:openai": "node scripts/check-openai-risk.js",
+    "check:llm": "node scripts/check-openai-risk.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
