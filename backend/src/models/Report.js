@@ -40,6 +40,26 @@ const reportSchema = new mongoose.Schema(
       enum: ["high", "medium", "low"],
       default: "medium",
     },
+    riskConfidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+    },
+    riskReason: {
+      type: String,
+      trim: true,
+    },
+    source: {
+      type: String,
+      enum: ["manual", "emergency_locations"],
+      default: "manual",
+    },
+    sourceEmergencyLocationId: {
+      type: String,
+      trim: true,
+      sparse: true,
+      unique: true,
+    },
     reporterName: {
       type: String,
       required: true,

@@ -4,6 +4,9 @@ const { userAuth } = require("../middlewares/auth");
 const {
   detectEmergencyRisk,
 } = require("../risk-detection/services/riskDetectionService");
+const {
+  upsertReportFromEmergencyLocation,
+} = require("../services/emergencyReportService");
 
 const trackingRouter = express.Router();
 const RISK_CACHE_TTL_MS = 2 * 60 * 1000;
@@ -157,7 +160,7 @@ const setCachedRisk = (cacheKey, result) => {
   });
 };
 
-const buildTrackedUser = async (doc) => {
+const buildTrackedUser = async (doc, station) => {
   const normalizedUser = {
     ...normalizeUserDoc(doc),
     source: "emergency_locations",
@@ -181,6 +184,12 @@ const buildTrackedUser = async (doc) => {
       setCachedRisk(cacheKey, riskResult);
     }
 
+    const savedReport = await upsertReportFromEmergencyLocation({
+      doc,
+      station,
+      riskAnalysis: riskResult,
+    });
+
     return {
       ...normalizedUser,
       status: mapRiskToStatus(riskResult?.riskLevel),
@@ -191,6 +200,8 @@ const buildTrackedUser = async (doc) => {
         reason: riskResult?.reason,
         flaggedForReview: Boolean(riskResult?.flaggedForReview),
       },
+      reportId: savedReport?.reportId,
+      reportObjectId: savedReport?._id,
     };
   } catch (error) {
     return normalizedUser;
@@ -307,7 +318,7 @@ trackingRouter.get("/users", userAuth, async (req, res) => {
       isAssignedToStation(doc, station)
     );
     const stationUsers = await Promise.all(
-      stationDocs.map((doc) => buildTrackedUser(doc))
+      stationDocs.map((doc) => buildTrackedUser(doc, station))
     );
 
     return res.json({ users: stationUsers });
@@ -334,7 +345,7 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
       isAssignedToStation(doc, station)
     );
     const normalized = (await Promise.all(
-      stationDocs.map((doc) => buildTrackedUser(doc))
+      stationDocs.map((doc) => buildTrackedUser(doc, station))
     ))
       .filter((doc) => doc.status === "emergency");
     return res.json({ users: normalized });

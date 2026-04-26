@@ -79,6 +79,19 @@ export function RecentReports() {
     }
   }
 
+  const getRiskBadgeColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-destructive text-destructive-foreground"
+      case "medium":
+        return "bg-yellow-500 text-white"
+      case "low":
+        return "bg-green-600 text-white"
+      default:
+        return "bg-secondary text-secondary-foreground"
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -101,6 +114,7 @@ export function RecentReports() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{report.reportId}</span>
                   <Badge variant="outline">{report.type}</Badge>
+                  <Badge className={getRiskBadgeColor(report.priority)}>Risk: {report.priority}</Badge>
                   <Badge className={getStatusColor(report.status)}>{report.status}</Badge>
                 </div>
                 <div className="flex gap-2">
