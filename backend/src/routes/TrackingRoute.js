@@ -97,14 +97,15 @@ const normalizeUserDoc = (doc) => {
     _id: String(doc?._id),
     userId: doc?.userId ? String(doc.userId) : undefined,
     name:
+      doc?.reporterName ||
       doc?.userId ||
       doc?.name ||
       doc?.username ||
       doc?.userName ||
       "Unknown User",
-    phone: doc?.phone || doc?.phoneNumber || "N/A",
+    phone: doc?.reporterPhone || doc?.phone || doc?.phoneNumber || "N/A",
     email: doc?.email || "",
-    status: normalizeStatus(doc?.status),
+    status: normalizeStatus(doc?.status || "emergency"),
     lastLocation,
     batteryLevel: normalizeBattery(doc),
     updatedAt,
@@ -160,7 +161,8 @@ const setCachedRisk = (cacheKey, result) => {
   });
 };
 
-const buildTrackedUser = async (doc, station) => {
+const buildTrackedUser = async (doc, station, options = {}) => {
+  const { persistReport = true } = options;
   const normalizedUser = {
     ...normalizeUserDoc(doc),
     source: "emergency_locations",
@@ -184,11 +186,13 @@ const buildTrackedUser = async (doc, station) => {
       setCachedRisk(cacheKey, riskResult);
     }
 
-    const savedReport = await upsertReportFromEmergencyLocation({
-      doc,
-      station,
-      riskAnalysis: riskResult,
-    });
+    const savedReport = persistReport
+      ? await upsertReportFromEmergencyLocation({
+          doc,
+          station,
+          riskAnalysis: riskResult,
+        })
+      : null;
 
     return {
       ...normalizedUser,
@@ -314,14 +318,21 @@ trackingRouter.get("/users", userAuth, async (req, res) => {
       .find({})
       .limit(500)
       .toArray();
-    const stationDocs = emergencyRows.filter((doc) =>
+    const assignedStationDocs = emergencyRows.filter((doc) =>
       isAssignedToStation(doc, station)
     );
+    const isFallbackScope = assignedStationDocs.length === 0;
+    const stationDocs = isFallbackScope ? emergencyRows : assignedStationDocs;
     const stationUsers = await Promise.all(
-      stationDocs.map((doc) => buildTrackedUser(doc, station))
+      stationDocs.map((doc) =>
+        buildTrackedUser(doc, station, { persistReport: !isFallbackScope })
+      )
     );
 
-    return res.json({ users: stationUsers });
+    return res.json({
+      users: stationUsers,
+      scope: isFallbackScope ? "all" : "assigned",
+    });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch tracking data" });
   }
@@ -341,14 +352,21 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
       .limit(500)
       .toArray();
 
-    const stationDocs = emergencyRows.filter((doc) =>
+    const assignedStationDocs = emergencyRows.filter((doc) =>
       isAssignedToStation(doc, station)
     );
+    const isFallbackScope = assignedStationDocs.length === 0;
+    const stationDocs = isFallbackScope ? emergencyRows : assignedStationDocs;
     const normalized = (await Promise.all(
-      stationDocs.map((doc) => buildTrackedUser(doc, station))
+      stationDocs.map((doc) =>
+        buildTrackedUser(doc, station, { persistReport: !isFallbackScope })
+      )
     ))
       .filter((doc) => doc.status === "emergency");
-    return res.json({ users: normalized });
+    return res.json({
+      users: normalized,
+      scope: isFallbackScope ? "all" : "assigned",
+    });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch emergency data" });
   }

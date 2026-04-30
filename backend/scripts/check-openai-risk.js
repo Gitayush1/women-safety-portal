@@ -17,6 +17,8 @@ async function main() {
           process.env.RISK_LLM_MODEL ||
           (process.env.RISK_LLM_PROVIDER === "ollama"
             ? "llama3.2"
+            : process.env.RISK_LLM_PROVIDER === "gemini"
+            ? "gemini-2.5-flash"
             : "gpt-4o-mini"),
         result,
       },
