@@ -5,16 +5,33 @@ const Police = require("../models/Police");
 const { userAuth } = require("../middlewares/auth");
 const { detectEmergencyRisk } = require("../risk-detection/services/riskDetectionService");
 
+const buildStationReportFilter = (station) => {
+  const stationId = station?._id;
+  const stationIdString = stationId ? String(stationId) : "";
+  const stationName = station?.policeStationName || "";
+  const objectIdRefs = [stationId, stationIdString].filter(Boolean);
+  const filters = [];
+
+  if (objectIdRefs.length) {
+    filters.push(
+      { linkedStationIds: { $in: objectIdRefs } },
+      { assignedStationId: { $in: objectIdRefs } }
+    );
+  }
+
+  if (stationName) {
+    filters.push({ assignedStation: stationName });
+  }
+
+  return {
+    $or: filters,
+  };
+};
+
 // Get all reports
 reportRouter.get("/", userAuth, async (req, res) => {
   try {
-    const stationId = req.user?._id;
-    const reports = await Report.find({
-      $or: [
-        { linkedStationIds: stationId },
-        { assignedStationId: stationId },
-      ],
-    })
+    const reports = await Report.find(buildStationReportFilter(req.user))
       .populate("assignedOfficer", "badgeNumber policeStationName")
       .populate("assignedStationId", "policeStationName badgeNumber")
       .populate("linkedStationIds", "policeStationName badgeNumber")
@@ -29,13 +46,9 @@ reportRouter.get("/", userAuth, async (req, res) => {
 // Get single report
 reportRouter.get("/:id", userAuth, async (req, res) => {
   try {
-    const stationId = req.user?._id;
     const report = await Report.findOne({
       _id: req.params.id,
-      $or: [
-        { linkedStationIds: stationId },
-        { assignedStationId: stationId },
-      ],
+      ...buildStationReportFilter(req.user),
     })
       .populate("assignedOfficer", "badgeNumber policeStationName")
       .populate("assignedStationId", "policeStationName badgeNumber")
@@ -61,6 +74,8 @@ reportRouter.post("/", userAuth, async (req, res) => {
       description,
       voiceTranscript,
       voiceUrl,
+      userId,
+      userName,
       reporterName,
       reporterPhone,
       assignedStation,
@@ -126,7 +141,7 @@ reportRouter.post("/", userAuth, async (req, res) => {
       riskReason: riskAnalysis.reason,
       riskSource: riskAnalysis.debug?.source,
       riskFallbackReason: riskAnalysis.debug?.fallbackReason,
-      reporterName,
+      reporterName: userId?.trim?.() || userName?.trim?.() || reporterName,
       reporterPhone,
       assignedStationId,
       linkedStationIds: normalizedLinkedStationIds,
@@ -149,14 +164,10 @@ reportRouter.post("/", userAuth, async (req, res) => {
 reportRouter.patch("/:id/status", userAuth, async (req, res) => {
   try {
     const { status } = req.body;
-    const stationId = req.user?._id;
     const report = await Report.findOneAndUpdate(
       {
         _id: req.params.id,
-        $or: [
-          { linkedStationIds: stationId },
-          { assignedStationId: stationId },
-        ],
+        ...buildStationReportFilter(req.user),
       },
       { status },
       { new: true }
@@ -176,7 +187,6 @@ reportRouter.patch("/:id/status", userAuth, async (req, res) => {
 reportRouter.patch("/:id/assign", userAuth, async (req, res) => {
   try {
     const { officerId } = req.body;
-    const stationId = req.user?._id;
     
     const officer = await Police.findById(officerId);
     if (!officer) {
@@ -186,10 +196,7 @@ reportRouter.patch("/:id/assign", userAuth, async (req, res) => {
     const report = await Report.findOneAndUpdate(
       {
         _id: req.params.id,
-        $or: [
-          { linkedStationIds: stationId },
-          { assignedStationId: stationId },
-        ],
+        ...buildStationReportFilter(req.user),
       },
       { assignedOfficer: officerId },
       { new: true }
@@ -209,15 +216,11 @@ reportRouter.patch("/:id/assign", userAuth, async (req, res) => {
 reportRouter.post("/:id/notes", userAuth, async (req, res) => {
   try {
     const { note } = req.body;
-    const stationId = req.user?._id;
     
     const report = await Report.findOneAndUpdate(
       {
         _id: req.params.id,
-        $or: [
-          { linkedStationIds: stationId },
-          { assignedStationId: stationId },
-        ],
+        ...buildStationReportFilter(req.user),
       },
       { $push: { notes: { note, addedBy: req.user._id } } },
       { new: true }

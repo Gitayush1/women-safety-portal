@@ -23,7 +23,7 @@ export function Header() {
   const handleLogout = async () => {
     try {
       // Call backend logout API
-      await fetch('http://localhost:7777/api/police/logout', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777'}/api/police/logout`, {
         method: 'POST',
         credentials: 'include', // Include cookies for JWT
       })

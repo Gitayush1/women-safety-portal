@@ -7,7 +7,7 @@ const userAuth = async (req, res, next) => {
         if (!token) {
             return res.status(401).json({ error: "Please Login!" });
         }
-        const decode = jwt.verify(token, "DEV@Police$790");
+        const decode = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decode._id).lean(); 
 
         if (!user) {

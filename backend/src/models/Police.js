@@ -32,10 +32,17 @@ const policeSchema = new mongoose.Schema(
 );
 
 
+// Hash password before saving
+policeSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
 policeSchema.methods.getJWT = async function () {
   const police = this;
 
-  const token = await jwt.sign({ _id: police._id }, "DEV@Police$790", {
+  const token = await jwt.sign({ _id: police._id }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 
@@ -44,10 +51,7 @@ policeSchema.methods.getJWT = async function () {
 
 policeSchema.methods.validatePassword = async function (passwordInputByUser) {
   const police = this;
-  const storedPassword = police.password;
-
-  // Simple string comparison for plain text passwords
-  return passwordInputByUser === storedPassword;
+  return bcrypt.compare(passwordInputByUser, police.password);
 };
 
 module.exports = mongoose.model("Police", policeSchema);

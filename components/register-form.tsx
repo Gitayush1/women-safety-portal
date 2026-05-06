@@ -37,15 +37,15 @@ export function RegisterForm() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long")
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long")
       setIsLoading(false)
       return
     }
 
     // API call to backend
     try {
-      const response = await fetch('http://localhost:7777/api/police/signup', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777'}/api/police/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -97,11 +97,11 @@ const normalizeUserDoc = (doc) => {
     _id: String(doc?._id),
     userId: doc?.userId ? String(doc.userId) : undefined,
     name:
-      doc?.reporterName ||
       doc?.userId ||
       doc?.name ||
       doc?.username ||
       doc?.userName ||
+      doc?.reporterName ||
       "Unknown User",
     phone: doc?.reporterPhone || doc?.phone || doc?.phoneNumber || "N/A",
     email: doc?.email || "",

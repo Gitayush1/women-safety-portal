@@ -1,4 +1,5 @@
 const Report = require("../models/Report");
+const Police = require("../models/Police");
 
 const REPORT_SEQUENCE_PREFIX = "RPT";
 const REPORT_TYPES = new Set([
@@ -85,6 +86,57 @@ const normalizeReportType = (value) => {
   return REPORT_TYPES.has(candidate) ? candidate : "Emergency";
 };
 
+const collectStationRefs = (doc, station) => {
+  const refs = [
+    doc?.assignedStationId,
+    doc?.stationId,
+    doc?.dedicatedStationId,
+    doc?.assignedStation,
+    doc?.stationName,
+    doc?.policeStationName,
+    station?._id,
+    station?.badgeNumber,
+    station?.policeStationName,
+  ];
+
+  if (Array.isArray(doc?.linkedStationIds)) refs.push(...doc.linkedStationIds);
+  if (Array.isArray(doc?.linkedStations)) refs.push(...doc.linkedStations);
+
+  return [...new Set(refs.map(stringifyId).filter(Boolean))];
+};
+
+async function resolveLinkedStations(doc, station) {
+  const refs = collectStationRefs(doc, station);
+  const objectIds = refs
+    .filter((ref) => /^[a-fA-F0-9]{24}$/.test(ref))
+    .map((ref) => ref);
+  const textRefs = refs.filter((ref) => !/^[a-fA-F0-9]{24}$/.test(ref));
+
+  const queryParts = [];
+  if (objectIds.length) {
+    queryParts.push({ _id: { $in: objectIds } });
+  }
+  if (textRefs.length) {
+    queryParts.push(
+      { badgeNumber: { $in: textRefs } },
+      { policeStationName: { $in: textRefs } }
+    );
+  }
+
+  const stations = queryParts.length
+    ? await Police.find({ $or: queryParts }).select("_id policeStationName badgeNumber")
+    : [];
+
+  const currentStationIncluded = stations.some(
+    (entry) => stringifyId(entry._id) === stringifyId(station?._id)
+  );
+  if (station?._id && !currentStationIncluded) {
+    stations.push(station);
+  }
+
+  return stations;
+}
+
 async function upsertReportFromEmergencyLocation({ doc, station, riskAnalysis }) {
   const sourceEmergencyLocationId = stringifyId(doc?._id);
   if (!sourceEmergencyLocationId || !station?._id) return null;
@@ -99,7 +151,19 @@ async function upsertReportFromEmergencyLocation({ doc, station, riskAnalysis })
   const voiceTranscript = pickString(doc?.voiceTranscript);
   const existingReport = await Report.findOne({ sourceEmergencyLocationId });
   const reportId = existingReport?.reportId || (await buildReportId());
-  const linkedStationIds = [station._id];
+  const linkedStations = await resolveLinkedStations(doc, station);
+  const assignedStation =
+    linkedStations.find((entry) => {
+      const assignedRef = stringifyId(doc?.assignedStationId);
+      return (
+        stringifyId(entry._id) === assignedRef ||
+        stringifyId(entry.badgeNumber) === assignedRef ||
+        stringifyId(entry.policeStationName) === assignedRef
+      );
+    }) || station;
+  const linkedStationIds = [
+    ...new Set(linkedStations.map((entry) => stringifyId(entry._id))),
+  ];
 
   const update = {
     reportId,
@@ -113,11 +177,11 @@ async function upsertReportFromEmergencyLocation({ doc, station, riskAnalysis })
     riskReason: riskAnalysis?.reason,
     riskSource: riskAnalysis?.debug?.source,
     riskFallbackReason: riskAnalysis?.debug?.fallbackReason,
-    reporterName: pickString(doc?.name, doc?.username, doc?.userName, doc?.userId, "Unknown User"),
+    reporterName: pickString(doc?.userId, doc?.name, doc?.username, doc?.userName, "Unknown User"),
     reporterPhone: pickString(doc?.phone, doc?.phoneNumber, "N/A"),
-    assignedStationId: station._id,
+    assignedStationId: assignedStation._id,
     linkedStationIds,
-    assignedStation: station.policeStationName,
+    assignedStation: assignedStation.policeStationName,
     coordinates: buildCoordinates(doc),
     source: "emergency_locations",
     sourceEmergencyLocationId,

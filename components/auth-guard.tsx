@@ -6,6 +6,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7777"
+
 interface AuthGuardProps {
   children: React.ReactNode
 }
@@ -15,13 +17,38 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = () => {
-      const authStatus = localStorage.getItem("isAuthenticated")
-      if (authStatus === "true") {
-        setIsAuthenticated(true)
-      } else {
-        setIsAuthenticated(false)
-        router.push("/login")
+    const checkAuth = async () => {
+      try {
+        // Verify the JWT cookie with the backend — localStorage alone is not trustworthy
+        const res = await fetch(`${API_BASE}/api/police/me`, {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          // Keep localStorage in sync for display purposes only
+          localStorage.setItem("isAuthenticated", "true")
+          localStorage.setItem("officerName", data.policeStationName || "Officer")
+          localStorage.setItem("badgeNumber", data.badgeNumber || "")
+          setIsAuthenticated(true)
+        } else {
+          // Token invalid or expired — clear stale localStorage and redirect
+          localStorage.removeItem("isAuthenticated")
+          localStorage.removeItem("officerName")
+          localStorage.removeItem("badgeNumber")
+          setIsAuthenticated(false)
+          router.push("/login")
+        }
+      } catch {
+        // Network error — fall back to cached auth state to avoid locking out offline users
+        const cached = localStorage.getItem("isAuthenticated")
+        if (cached === "true") {
+          setIsAuthenticated(true)
+        } else {
+          setIsAuthenticated(false)
+          router.push("/login")
+        }
       }
     }
 
