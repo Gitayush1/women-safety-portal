@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7777"
+import { API_BASE_URL } from "@/lib/config"
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -20,7 +20,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const checkAuth = async () => {
       try {
         // Verify the JWT cookie with the backend — localStorage alone is not trustworthy
-        const res = await fetch(`${API_BASE}/api/police/me`, {
+        const res = await fetch(`${API_BASE_URL}/api/police/me`, {
           method: "GET",
           credentials: "include",
         })

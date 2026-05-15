@@ -10,6 +10,7 @@ import {
   Brain,
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 interface User {
   _id: string
@@ -50,7 +51,7 @@ export function ActiveTracking({
     setResolvingId(userId)
     try {
       const response = await fetch(
-        `http://localhost:7777/api/tracking/emergency/${userId}/resolve`,
+        `${API_BASE_URL}/api/tracking/emergency/${userId}/resolve`,
         {
           method: "PATCH",
           credentials: "include",
@@ -88,10 +89,10 @@ export function ActiveTracking({
       setLoading((prev) => (prev ? true : false))
       try {
         const [allRes, emergencyRes] = await Promise.all([
-          fetch("http://localhost:7777/api/tracking/users", {
+          fetch(`${API_BASE_URL}/api/tracking/users`, {
             credentials: "include",
           }),
-          fetch("http://localhost:7777/api/tracking/emergency", {
+          fetch(`${API_BASE_URL}/api/tracking/emergency`, {
             credentials: "include",
           }),
         ])
