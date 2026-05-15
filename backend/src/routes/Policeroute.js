@@ -5,8 +5,8 @@ const {userAuth}  = require("../middlewares/auth");
 
 const COOKIE_OPTIONS = {
   httpOnly: true,                                    // not accessible via JS
-  secure: process.env.NODE_ENV === "production",     // HTTPS only in prod
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+  secure: true,                                      // required for sameSite: "none"
+  sameSite: "none",                                  // required for cross-origin requests
   maxAge: 7 * 24 * 60 * 60 * 1000,                  // 7 days in ms
 };
 
