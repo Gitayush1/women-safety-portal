@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Lock, User, Building, AlertCircle, MapPin } from "lucide-react"
+import { Eye, EyeOff, Lock, User, Building, AlertCircle, MapPin, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export function RegisterForm() {
@@ -30,7 +29,6 @@ export function RegisterForm() {
     setIsLoading(true)
     setError("")
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
       setIsLoading(false)
@@ -43,39 +41,34 @@ export function RegisterForm() {
       return
     }
 
-    // API call to backend
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777'}/api/police/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for JWT
-        body: JSON.stringify({
-          policeStationName: formData.policeStationName,
-          badgeNumber: formData.badgeNumber,
-          password: formData.password,
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
-        }),
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:7777"}/api/police/signup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            policeStationName: formData.policeStationName,
+            badgeNumber: formData.badgeNumber,
+            password: formData.password,
+            latitude: parseFloat(formData.latitude),
+            longitude: parseFloat(formData.longitude),
+          }),
+        }
+      )
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
+        throw new Error(data.error || "Registration failed")
       }
 
-      // Store auth state
       localStorage.setItem("isAuthenticated", "true")
       localStorage.setItem("officerName", formData.policeStationName)
       localStorage.setItem("badgeNumber", formData.badgeNumber)
-      
-      console.log("Registration successful:", data)
-      
-      // Redirect to main page
+
       window.location.href = "/"
-      
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.")
     } finally {
@@ -85,14 +78,13 @@ export function RegisterForm() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (error) setError("") // Clear error when user starts typing
+    if (error) setError("")
   }
 
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-center">Officer Registration</CardTitle>
+    <Card className="border-primary/10 shadow-xl shadow-primary/5">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-center text-lg">Station Registration</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,7 +96,7 @@ export function RegisterForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="policeStationName">Police Station Name</Label>
+            <Label htmlFor="policeStationName" className="text-sm">Police Station Name</Label>
             <div className="relative">
               <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -113,14 +105,14 @@ export function RegisterForm() {
                 placeholder="Enter police station name"
                 value={formData.policeStationName}
                 onChange={(e) => handleInputChange("policeStationName", e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="badgeNumber">Badge Number</Label>
+            <Label htmlFor="badgeNumber" className="text-sm">Badge Number</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -129,114 +121,115 @@ export function RegisterForm() {
                 placeholder="Enter your badge number"
                 value={formData.badgeNumber}
                 onChange={(e) => handleInputChange("badgeNumber", e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
+              <Label htmlFor="latitude" className="text-sm">Latitude</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="latitude"
                   type="number"
                   step="any"
-                  placeholder="e.g., 30.482576"
+                  placeholder="e.g., 30.48"
                   value={formData.latitude}
                   onChange={(e) => handleInputChange("latitude", e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
+              <Label htmlFor="longitude" className="text-sm">Longitude</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="longitude"
                   type="number"
                   step="any"
-                  placeholder="e.g., 77.806039"
+                  placeholder="e.g., 77.80"
                   value={formData.longitude}
                   onChange={(e) => handleInputChange("longitude", e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10"
                   required
                 />
               </div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            <p>Enter the exact latitude and longitude coordinates of the police station</p>
-          </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm">Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder="Min 8 characters"
                 value={formData.password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 h-10"
                 required
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm your password"
+                placeholder="Confirm password"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 h-10"
                 required
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
+                {showConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </Button>
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Registering..." : "Register"}
+          <Button type="submit" className="w-full h-10" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Registering...
+              </>
+            ) : (
+              "Register Station"
+            )}
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            <p>Already have an account? <Link href="/login" className="text-primary hover:underline">Sign in</Link></p>
+            <p>
+              Already registered?{" "}
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
           </div>
         </form>
       </CardContent>

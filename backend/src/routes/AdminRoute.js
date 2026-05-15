@@ -7,9 +7,42 @@ const { userAuth } = require("../middlewares/auth");
 // Get admin dashboard stats
 adminRouter.get("/stats", userAuth, async (req, res) => {
   try {
-    // Get the current logged-in police station name
     const currentStationName = req.user.policeStationName;
-    
+    const stationId = String(req.user._id);
+    const db = require("mongoose").connection.db;
+
+    // Count tracked women from emergency_locations (same scope as Active Tracking)
+    let totalUsers = 0;
+    let liveEmergencyCount = 0;
+    if (db) {
+      const allRows = await db
+        .collection("emergency_locations")
+        .find({})
+        .limit(500)
+        .toArray();
+
+      const assigned = allRows.filter((doc) => {
+        const ids = [doc?.stationId, doc?.assignedStationId, doc?.dedicatedStationId]
+          .flat().filter(Boolean).map(String);
+        const names = [doc?.assignedStation, doc?.stationName, doc?.policeStationName]
+          .flat().filter(Boolean).map((n) => String(n).trim().toLowerCase());
+        return (
+          ids.includes(stationId) ||
+          names.includes(currentStationName.trim().toLowerCase())
+        );
+      });
+
+      // Same fallback logic as TrackingRoute — if none assigned, show all
+      const scopedRows = assigned.length > 0 ? assigned : allRows;
+      totalUsers = scopedRows.length;
+
+      // Count only emergency-status docs within the same scope
+      liveEmergencyCount = scopedRows.filter((doc) => {
+        const status = String(doc?.status || "").trim().toLowerCase();
+        return status === "emergency" || status === "sos" || status === "";
+      }).length;
+    }
+
     const [
       totalReports,
       activeReports,
@@ -19,26 +52,30 @@ adminRouter.get("/stats", userAuth, async (req, res) => {
     ] = await Promise.all([
       Report.countDocuments({ assignedStation: currentStationName }),
       Report.countDocuments({ status: "active", assignedStation: currentStationName }),
-      Report.countDocuments({ 
-        status: "resolved", 
+      Report.countDocuments({
+        status: "resolved",
         assignedStation: currentStationName,
-        updatedAt: { $gte: new Date().setHours(0, 0, 0, 0) } 
+        updatedAt: { $gte: new Date().setHours(0, 0, 0, 0) },
       }),
       Police.countDocuments({ policeStationName: currentStationName }),
-      Report.countDocuments({ priority: "high", status: "active", assignedStation: currentStationName }),
+      Report.countDocuments({
+        priority: "high",
+        status: "active",
+        assignedStation: currentStationName,
+      }),
     ]);
 
-    const stats = {
-      totalReports,
-      activeReports,
-      resolvedToday,
-      totalOfficers,
-      totalUsers: 0,
-      emergencyReports,
-      currentStation: currentStationName,
-    };
-
-    res.json({ stats });
+    res.json({
+      stats: {
+        totalReports,
+        activeReports,
+        resolvedToday,
+        totalOfficers,
+        totalUsers,
+        emergencyReports: liveEmergencyCount,
+        currentStation: currentStationName,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch admin stats" });
   }

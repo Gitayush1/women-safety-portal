@@ -18,7 +18,7 @@ export type MapMarker = {
   position: LatLng;
   label: string;
   address?: string;
-  status: "safe" | "warning" | "unknown";
+  status: "safe" | "warning" | "emergency" | "unknown";
   emergency?: boolean;
   lastUpdate?: string;
   type?: "user" | "police";
@@ -63,14 +63,15 @@ export function LeafletMap({
           color = "#3b82f6"; // Blue for police stations
           radius = 8;
         } else {
-          color = m.emergency
+          const isEmergency = m.emergency || m.status === "emergency"
+          color = isEmergency
             ? "#ef4444"
             : m.status === "safe"
             ? "#16a34a"
             : m.status === "warning"
             ? "#eab308"
             : "#64748b";
-          radius = m.emergency ? 10 : 7;
+          radius = isEmergency ? 10 : 7;
         }
 
         return (
@@ -92,7 +93,7 @@ export function LeafletMap({
                     Status:{" "}
                     <span
                       className={`font-medium ${
-                        m.emergency
+                        m.emergency || m.status === "emergency"
                           ? "text-red-600"
                           : m.status === "safe"
                           ? "text-green-600"
@@ -101,7 +102,9 @@ export function LeafletMap({
                           : "text-gray-600"
                       }`}
                     >
-                      {m.emergency ? "EMERGENCY" : m.status.toUpperCase()}
+                      {m.emergency || m.status === "emergency"
+                        ? "EMERGENCY"
+                        : m.status.toUpperCase()}
                     </span>
                   </p>
                 )}

@@ -1,173 +1,137 @@
-"use client";
+"use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Navigation, Zap } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
-import dynamic from "next/dynamic";
-import type { MapMarker } from "./leaflet-map";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Navigation, Crosshair } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import dynamic from "next/dynamic"
+import type { MapMarker } from "./leaflet-map"
 
-type TrackingViewMode = "all" | "emergency";
+type TrackingViewMode = "all" | "emergency"
 
 interface LiveTrackingMapProps {
-  viewMode: TrackingViewMode;
-  refreshKey: number;
+  viewMode: TrackingViewMode
+  refreshKey: number
 }
 
 export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) {
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({
     lat: 32.437867,
     lng: 77.577168,
-  }); // fallback: Provided police station geofence center
-  const [geoSupported, setGeoSupported] = useState<boolean>(false);
+  })
+  const [geoSupported, setGeoSupported] = useState<boolean>(false)
+  const [trackedUsers, setTrackedUsers] = useState<any[]>([])
+  const [policeStations, setPoliceStations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (typeof window !== "undefined" && "geolocation" in navigator) {
-      setGeoSupported(true);
+      setGeoSupported(true)
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        () => {
-          // keep fallback center
-        },
+        (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
-      );
+      )
     }
-  }, []);
-
-  const [trackedUsers, setTrackedUsers] = useState<any[]>([]);
-  const [policeStations, setPoliceStations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  }, [])
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setLoading((prev) => (prev ? true : false))
       try {
         const usersEndpoint =
           viewMode === "emergency"
             ? "http://localhost:7777/api/tracking/emergency"
-            : "http://localhost:7777/api/tracking/users";
-        const usersResponse = await fetch(usersEndpoint, {
-          credentials: "include",
-        });
-        const usersData = await usersResponse.json();
+            : "http://localhost:7777/api/tracking/users"
+        const usersResponse = await fetch(usersEndpoint, { credentials: "include" })
+        const usersData = await usersResponse.json()
 
         if (usersResponse.ok) {
           const usersWithLocation = usersData.users
-            .filter((user: any) => user.lastLocation)
-            .map((user: any) => ({
-              id: user._id,
-              name: user.name,
-              status:
-                viewMode === "emergency"
-                  ? user.status || "unknown"
-                  : "safe",
-              location: {
-                lat: user.lastLocation.lat,
-                lng: user.lastLocation.lng,
-                address: `${user.lastLocation.lat.toFixed(
-                  4
-                )}, ${user.lastLocation.lng.toFixed(4)}`,
-              },
-              lastUpdate: formatTimeAgo(user.lastLocation.timestamp),
-              emergency: viewMode === "emergency",
-            }));
-          setTrackedUsers(usersWithLocation);
+            .map((user: any) => {
+              const status = (user.status || "unknown") as string
+              const isEmergency = status === "emergency"
+              const loc = user.lastLocation
+              return {
+                id: user._id,
+                name: user.name,
+                status,
+                hasLocation: !!loc,
+                location: loc
+                  ? {
+                      lat: loc.lat,
+                      lng: loc.lng,
+                      address: `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`,
+                    }
+                  : null,
+                lastUpdate: loc ? formatTimeAgo(loc.timestamp) : "No location",
+                emergency: isEmergency,
+              }
+            })
+          setTrackedUsers(usersWithLocation)
         } else {
-          setTrackedUsers([]);
+          setTrackedUsers([])
         }
 
-        // Fetch police stations
-        const policeResponse = await fetch(
-          "http://localhost:7777/api/police/stations"
-        );
-        const policeData = await policeResponse.json();
+        const policeResponse = await fetch("http://localhost:7777/api/police/stations")
+        const policeData = await policeResponse.json()
 
         if (policeResponse.ok) {
-          const stationsWithLocation = policeData.policeStations.map(
-            (station: any) => ({
+          const stationsWithLocation = policeData.policeStations
+            .filter((s: any) => typeof s.latitude === "number" && typeof s.longitude === "number")
+            .map((station: any) => ({
               id: station._id,
               name: station.policeStationName,
               badgeNumber: station.badgeNumber,
               location: {
                 lat: station.latitude,
                 lng: station.longitude,
-                address: `${station.latitude.toFixed(
-                  4
-                )}, ${station.longitude.toFixed(4)}`,
+                address: `${station.latitude.toFixed(4)}, ${station.longitude.toFixed(4)}`,
               },
               type: "police",
-            })
-          );
-          setPoliceStations(stationsWithLocation);
+            }))
+          setPoliceStations(stationsWithLocation)
         }
       } catch (error) {
-        console.error("Failed to fetch data:", error);
-        setTrackedUsers([]);
-        setPoliceStations([
-          {
-            id: "ps1",
-            name: "Shimla Police",
-            badgeNumber: "HP-SH-1001",
-            location: {
-              lat: baseLat - 0.25,
-              lng: baseLng - 0.4,
-              address: `${(baseLat - 0.25).toFixed(4)}, ${(
-                baseLng - 0.4
-              ).toFixed(4)}`,
-            },
-            type: "police",
-          },
-          {
-            id: "ps2",
-            name: "Kullu Police",
-            badgeNumber: "HP-KL-1002",
-            location: {
-              lat: baseLat + 0.4,
-              lng: baseLng - 0.2,
-              address: `${(baseLat + 0.4).toFixed(4)}, ${(
-                baseLng - 0.2
-              ).toFixed(4)}`,
-            },
-            type: "police",
-          },
-        ]);
+        console.error("Failed to fetch data:", error)
+        setTrackedUsers([])
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, [viewMode, refreshKey]);
+    fetchData()
+
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(fetchData, 5000)
+    return () => clearInterval(interval)
+  }, [viewMode, refreshKey])
 
   const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-  };
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+    return `${Math.floor(diffInSeconds / 3600)}h ago`
+  }
 
   const markers: MapMarker[] = useMemo(
     () => [
-      // User markers
-      ...trackedUsers.map((u) => ({
-        id: u.id,
-        label: u.name,
-        position: u.location,
-        address: u.location.address,
-        status: (u.status as "safe" | "warning" | "unknown") || "unknown",
-        emergency: u.emergency,
-        lastUpdate: u.lastUpdate,
-        type: "user" as const,
-      })),
-      // Police station markers
+      ...trackedUsers
+        .filter((u) => u.hasLocation && u.location)
+        .map((u) => ({
+          id: u.id,
+          label: u.name,
+          position: u.location,
+          address: u.location.address,
+          status: (u.status as "safe" | "warning" | "emergency" | "unknown") || "unknown",
+          emergency: u.emergency,
+          lastUpdate: u.lastUpdate,
+          type: "user" as const,
+        })),
       ...policeStations.map((station) => ({
         id: station.id,
         label: station.name,
@@ -180,7 +144,7 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
       })),
     ],
     [trackedUsers, policeStations]
-  );
+  )
 
   const DynamicLeafletMap = useMemo(
     () =>
@@ -188,29 +152,18 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
         ssr: false,
       }),
     []
-  );
-
-  const getStatusColor = (status: string, emergency: boolean) => {
-    if (emergency) return "bg-destructive text-destructive-foreground";
-    switch (status) {
-      case "safe":
-        return "bg-green-600 text-white";
-      case "warning":
-        return "bg-yellow-500 text-white";
-      default:
-        return "bg-secondary text-secondary-foreground";
-    }
-  };
+  )
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Live Map View
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-3 shrink-0">
+        <CardTitle className="flex items-center justify-between text-base">
+          <span className="font-semibold">Live Map View</span>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="h-8 text-xs"
               onClick={() => {
                 if (geoSupported) {
                   navigator.geolocation.getCurrentPosition(
@@ -219,92 +172,92 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude,
                       }),
-                    () => setCenter(center) // no-op on error
-                  );
+                    () => {}
+                  )
                 }
               }}
             >
-              <Navigation className="h-4 w-4 mr-2" />
-              Center Map
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedUser((prev) => (prev ? null : prev));
-              }}
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Auto Refresh
+              <Crosshair className="h-3.5 w-3.5 mr-1" />
+              Center
             </Button>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="relative">
+      <CardContent className="flex-1 flex flex-col min-h-0">
+        <div className="relative flex-1 min-h-0">
           <DynamicLeafletMap
             center={center}
             markers={markers}
-            className="h-96 w-full rounded-lg border"
+            className="h-full w-full rounded-lg border border-border overflow-hidden"
           />
-          <div className="absolute top-4 left-4 space-y-2 bg-background/80 backdrop-blur-md p-3 rounded-lg border">
-            {trackedUsers.map((user) => (
-              <div
-                key={user.id}
-                className={`p-2 rounded-lg cursor-pointer transition-all ${
-                  selectedUser === user.id ? "ring-2 ring-primary" : ""
-                }`}
-                onClick={() =>
-                  setSelectedUser(selectedUser === user.id ? null : user.id)
-                }
-                role="button"
-                aria-pressed={selectedUser === user.id}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      user.emergency
-                        ? "bg-destructive animate-pulse"
-                        : "bg-green-600"
-                    }`}
-                  />
-                  <span className="text-sm font-medium">{user.name}</span>
-                  <Badge
-                    className={getStatusColor(user.status, user.emergency)}
-                  >
-                    {user.emergency ? "EMERGENCY" : user.status}
-                  </Badge>
-                </div>
-                {selectedUser === user.id && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <p>{user.location.address}</p>
-                    <p>Last update: {user.lastUpdate}</p>
+
+          {/* User overlay */}
+          {trackedUsers.length > 0 && (
+            <div className="absolute top-3 left-3 max-h-[300px] overflow-y-auto space-y-1.5 bg-card/90 backdrop-blur-md p-2.5 rounded-lg border border-border w-48">
+              {trackedUsers.slice(0, 10).map((user) => (
+                <div
+                  key={user.id}
+                  className={`p-1.5 rounded-md cursor-pointer transition-all text-xs ${
+                    selectedUser === user.id
+                      ? "ring-1 ring-primary bg-primary/10"
+                      : "hover:bg-accent/50"
+                  } ${!user.hasLocation ? "opacity-60" : ""}`}
+                  onClick={() =>
+                    setSelectedUser(selectedUser === user.id ? null : user.id)
+                  }
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        user.emergency
+                          ? "bg-red-500 animate-pulse-dot"
+                          : user.status === "warning"
+                          ? "bg-amber-500"
+                          : user.hasLocation
+                          ? "bg-emerald-500"
+                          : "bg-gray-400"
+                      }`}
+                    />
+                    <span className="font-medium truncate">{user.name}</span>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                  {selectedUser === user.id && (
+                    <div className="mt-1 text-[10px] text-muted-foreground pl-3.5">
+                      {user.hasLocation ? (
+                        <>
+                          <p>{user.location.address}</p>
+                          <p>{user.lastUpdate}</p>
+                        </>
+                      ) : (
+                        <p className="text-amber-500">No location data</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 flex items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-600" />
-            <span>Police Station</span>
+        {/* Legend */}
+        <div className="mt-3 flex items-center gap-5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+            <span>Station</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-600" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
             <span>Safe</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             <span>Warning</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse-dot" />
             <span>Emergency</span>
           </div>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

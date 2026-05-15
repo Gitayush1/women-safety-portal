@@ -97,18 +97,19 @@ const normalizeUserDoc = (doc) => {
     _id: String(doc?._id),
     userId: doc?.userId ? String(doc.userId) : undefined,
     name:
-      doc?.userId ||
       doc?.name ||
       doc?.username ||
       doc?.userName ||
       doc?.reporterName ||
-      "Unknown User",
+      (doc?.userId ? `User-${String(doc.userId).slice(-4)}` : "Unknown User"),
     phone: doc?.reporterPhone || doc?.phone || doc?.phoneNumber || "N/A",
     email: doc?.email || "",
     status: normalizeStatus(doc?.status || "emergency"),
     lastLocation,
     batteryLevel: normalizeBattery(doc),
     updatedAt,
+    description: doc?.description || doc?.message || "",
+    voiceTranscript: doc?.voiceTranscript || "",
     note: doc?.note || "",
     source: "users",
   };
@@ -325,7 +326,7 @@ trackingRouter.get("/users", userAuth, async (req, res) => {
     const stationDocs = isFallbackScope ? emergencyRows : assignedStationDocs;
     const stationUsers = await Promise.all(
       stationDocs.map((doc) =>
-        buildTrackedUser(doc, station, { persistReport: !isFallbackScope })
+        buildTrackedUser(doc, station, { persistReport: true })
       )
     );
 
@@ -359,7 +360,7 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
     const stationDocs = isFallbackScope ? emergencyRows : assignedStationDocs;
     const normalized = (await Promise.all(
       stationDocs.map((doc) =>
-        buildTrackedUser(doc, station, { persistReport: !isFallbackScope })
+        buildTrackedUser(doc, station, { persistReport: true })
       )
     ))
       .filter((doc) => doc.status === "emergency");
@@ -369,6 +370,46 @@ trackingRouter.get("/emergency", userAuth, async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch emergency data" });
+  }
+});
+
+// Resolve emergency user - marks as safe
+trackingRouter.patch("/emergency/:id/resolve", userAuth, async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(503).json({ error: "Database not ready" });
+    }
+
+    const emergencyLocationId = req.params.id;
+    const station = req.user;
+
+    // Update the emergency_locations document status to "safe"
+    const updateResult = await db
+      .collection("emergency_locations")
+      .updateOne(
+        { _id: new mongoose.Types.ObjectId(emergencyLocationId) },
+        { $set: { status: "safe", resolvedAt: new Date(), resolvedBy: station._id } }
+      );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ error: "Emergency location not found" });
+    }
+
+    // Also update the linked Report if it exists
+    const Report = require("../models/Report");
+    await Report.findOneAndUpdate(
+      { sourceEmergencyLocationId: emergencyLocationId },
+      { status: "resolved", priority: "low" }
+    );
+
+    return res.json({
+      message: "Emergency resolved successfully",
+      emergencyLocationId,
+    });
+  } catch (err) {
+    console.error("Failed to resolve emergency:", err);
+    return res.status(500).json({ error: "Failed to resolve emergency" });
   }
 });
 

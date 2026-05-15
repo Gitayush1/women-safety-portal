@@ -1,31 +1,33 @@
+"use client"
+
 import { AdminStats } from "@/components/admin-stats"
 import { OfficerManagement } from "@/components/officer-management"
 import { SystemSettings } from "@/components/system-settings"
 import { RecentActivity } from "@/components/recent-activity"
-import { Header } from "@/components/header"
-import { AuthGuard } from "@/components/auth-guard"
+import { DashboardLayout } from "@/components/dashboard-layout"
 
 export default function AdminPage() {
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-6 space-y-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold text-foreground">Admin Management Panel</h1>
-            <p className="text-muted-foreground">System administration and officer management</p>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-foreground">
+            Admin Command Panel
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            System administration, officer management, and operations control
+          </p>
+        </div>
 
-          <AdminStats />
+        <AdminStats />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <OfficerManagement />
-            <SystemSettings />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OfficerManagement />
+          <SystemSettings />
+        </div>
 
-          <RecentActivity />
-        </main>
+        <RecentActivity />
       </div>
-    </AuthGuard>
+    </DashboardLayout>
   )
 }

@@ -19,4 +19,9 @@ module.exports = [
     text: "Unknown bike rider has been circling around me repeatedly",
     riskLevel: "high",
   },
+  {
+    id: "INC-005",
+    text: "I'm in danger",
+    riskLevel: "medium",
+  },
 ];

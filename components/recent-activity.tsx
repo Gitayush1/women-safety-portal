@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Shield, Database, Clock } from "lucide-react"
+import { FileText, User, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
 
 interface Activity {
@@ -19,110 +19,89 @@ export function RecentActivity() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const response = await fetch('http://localhost:7777/api/admin/activity', {
-          credentials: 'include',
+        const response = await fetch("http://localhost:7777/api/admin/activity", {
+          credentials: "include",
         })
         const data = await response.json()
-        
         if (response.ok) {
-          setActivities(data.activity.slice(0, 6)) // Show only first 6 activities
+          setActivities(data.activity.slice(0, 8))
         }
       } catch (error) {
-        console.error('Failed to fetch activities:', error)
+        console.error("Failed to fetch activities:", error)
       } finally {
         setLoading(false)
       }
     }
-
     fetchActivities()
   }, [])
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    )
     if (diffInMinutes < 1) return "Just now"
-    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`
-    return `${Math.floor(diffInMinutes / 1440)} days ago`
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
+    return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case "user":
-        return User
-      case "system":
-        return Shield
-      case "settings":
-        return Settings
-      case "database":
-        return Database
-      default:
-        return User
-    }
+  const getIcon = (type: string) => {
+    return type === "report" ? FileText : User
   }
 
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case "user":
-        return "text-blue-600"
-      case "system":
-        return "text-red-600"
-      case "settings":
-        return "text-green-600"
-      case "database":
-        return "text-purple-600"
-      default:
-        return "text-gray-600"
-    }
-  }
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "user":
-        return "bg-blue-100 text-blue-800"
-      case "system":
-        return "bg-red-100 text-red-800"
-      case "settings":
-        return "bg-green-100 text-green-800"
-      case "database":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
+  const getColor = (type: string) => {
+    return type === "report"
+      ? { bg: "bg-blue-100", text: "text-blue-600", badge: "bg-blue-100 text-blue-700" }
+      : { bg: "bg-violet-100", text: "text-violet-600", badge: "bg-violet-100 text-violet-700" }
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Recent System Activity</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold">
+          Recent System Activity
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-2">
           {loading ? (
-            <div className="text-center py-4">Loading activities...</div>
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              Loading activity...
+            </div>
           ) : activities.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">No recent activities</div>
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              No recent activity
+            </div>
           ) : (
             activities.map((activity, index) => {
-              const IconComponent = getActivityIcon(activity.type)
+              const IconComponent = getIcon(activity.type)
+              const colors = getColor(activity.type)
               return (
-                <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className={`p-2 rounded-full bg-muted`}>
-                    <IconComponent className={`h-4 w-4 ${getActivityColor(activity.type)}`} />
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-accent/30 transition-colors"
+                >
+                  <div className={`p-1.5 rounded-lg ${colors.bg} shrink-0`}>
+                    <IconComponent className={`h-3.5 w-3.5 ${colors.text}`} />
                   </div>
 
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm text-foreground">{activity.action}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={getTypeColor(activity.type)}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground truncate">
+                      {activity.action}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 ${colors.badge}`}
+                      >
                         {activity.type}
                       </Badge>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" />
                         {formatTimeAgo(activity.timestamp)}
-                      </div>
+                      </span>
                     </div>
                   </div>
                 </div>
