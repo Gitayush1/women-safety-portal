@@ -2,6 +2,7 @@
 
 import GoogleTrackingMap, { type TrackedUser } from "@/components/google-tracking-map"
 import { useState, useEffect } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 export default function TrackingWithGoogleMapsPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -12,7 +13,7 @@ export default function TrackingWithGoogleMapsPage() {
     const fetchData = async () => {
       try {
         // Fetch users
-        const usersResponse = await fetch('http://localhost:7777/api/users', {
+        const usersResponse = await fetch(`${API_BASE_URL}/api/tracking/users`, {
           credentials: 'include',
         });
         const usersData = await usersResponse.json();
@@ -32,7 +33,7 @@ export default function TrackingWithGoogleMapsPage() {
         }
 
         // Fetch police stations
-        const policeResponse = await fetch('http://localhost:7777/api/police/stations');
+        const policeResponse = await fetch(`${API_BASE_URL}/api/police/stations`);
         const policeData = await policeResponse.json();
         
         let policeStations: TrackedUser[] = [];

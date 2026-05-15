@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { API_BASE_URL } from "@/lib/config"
 
 interface CategoryStat {
   name: string
@@ -20,7 +21,7 @@ export function ReportsOverview() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const response = await fetch("http://localhost:7777/api/reports", {
+        const response = await fetch(`${API_BASE_URL}/api/reports`, {
           credentials: "include",
         })
         const data = await response.json()

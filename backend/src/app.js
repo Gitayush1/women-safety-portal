@@ -9,7 +9,7 @@ require("dotenv").config();
 // CORS — allow origins from env, fallback to localhost for development
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:3000", "http://localhost:3001"];
+  : ["http://localhost:3000", "http://localhost:3001", "https://v0-women-safety-portal.vercel.app"];
 
 app.use(
   cors({

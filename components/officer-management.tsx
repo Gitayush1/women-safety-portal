@@ -15,6 +15,7 @@ import {
 import { User, Search, Plus, Edit, Trash2, Shield, AlertCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { API_BASE_URL } from "@/lib/config"
 
 interface Officer {
   _id: string
@@ -43,7 +44,7 @@ export function OfficerManagement() {
 
   const fetchOfficers = async () => {
     try {
-      const response = await fetch("http://localhost:7777/api/admin/officers", {
+      const response = await fetch(`${API_BASE_URL}/api/admin/officers`, {
         credentials: "include",
       })
       const data = await response.json()
@@ -103,7 +104,7 @@ export function OfficerManagement() {
       if (editingOfficer) {
         // Update
         const res = await fetch(
-          `http://localhost:7777/api/admin/officers/${editingOfficer._id}`,
+          `${API_BASE_URL}/api/admin/officers/${editingOfficer._id}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -117,7 +118,7 @@ export function OfficerManagement() {
         }
       } else {
         // Create
-        const res = await fetch("http://localhost:7777/api/admin/officers", {
+        const res = await fetch(`${API_BASE_URL}/api/admin/officers`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -146,7 +147,7 @@ export function OfficerManagement() {
     setDeleteLoading(true)
     try {
       const res = await fetch(
-        `http://localhost:7777/api/admin/officers/${deleteId}`,
+        `${API_BASE_URL}/api/admin/officers/${deleteId}`,
         { method: "DELETE", credentials: "include" }
       )
       if (res.ok) {

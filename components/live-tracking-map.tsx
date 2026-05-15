@@ -7,6 +7,7 @@ import { Navigation, Crosshair } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import dynamic from "next/dynamic"
 import type { MapMarker } from "./leaflet-map"
+import { API_BASE_URL } from "@/lib/config"
 
 type TrackingViewMode = "all" | "emergency"
 
@@ -43,8 +44,8 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
       try {
         const usersEndpoint =
           viewMode === "emergency"
-            ? "http://localhost:7777/api/tracking/emergency"
-            : "http://localhost:7777/api/tracking/users"
+            ? `${API_BASE_URL}/api/tracking/emergency`
+            : `${API_BASE_URL}/api/tracking/users`
         const usersResponse = await fetch(usersEndpoint, { credentials: "include" })
         const usersData = await usersResponse.json()
 
@@ -75,7 +76,7 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
           setTrackedUsers([])
         }
 
-        const policeResponse = await fetch("http://localhost:7777/api/police/stations")
+        const policeResponse = await fetch(`${API_BASE_URL}/api/police/stations`)
         const policeData = await policeResponse.json()
 
         if (policeResponse.ok) {

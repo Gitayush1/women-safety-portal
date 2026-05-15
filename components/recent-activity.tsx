@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FileText, User, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 interface Activity {
   type: string
@@ -19,7 +20,7 @@ export function RecentActivity() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const response = await fetch("http://localhost:7777/api/admin/activity", {
+        const response = await fetch(`${API_BASE_URL}/api/admin/activity`, {
           credentials: "include",
         })
         const data = await response.json()

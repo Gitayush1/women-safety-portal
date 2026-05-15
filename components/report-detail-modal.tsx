@@ -29,6 +29,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 interface Report {
   _id: string
@@ -90,10 +91,10 @@ export function ReportDetailModal({
       setLoading(true)
       try {
         const [reportRes, officersRes] = await Promise.all([
-          fetch(`http://localhost:7777/api/reports/${reportId}`, {
+          fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
             credentials: "include",
           }),
-          fetch("http://localhost:7777/api/admin/officers", {
+          fetch(`${API_BASE_URL}/api/admin/officers`, {
             credentials: "include",
           }),
         ])
@@ -121,7 +122,7 @@ export function ReportDetailModal({
     setUpdatingStatus(true)
     try {
       const res = await fetch(
-        `http://localhost:7777/api/reports/${report._id}/status`,
+        `${API_BASE_URL}/api/reports/${report._id}/status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -146,7 +147,7 @@ export function ReportDetailModal({
     setAssigningOfficer(true)
     try {
       const res = await fetch(
-        `http://localhost:7777/api/reports/${report._id}/assign`,
+        `${API_BASE_URL}/api/reports/${report._id}/assign`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -171,7 +172,7 @@ export function ReportDetailModal({
     setAddingNote(true)
     try {
       const res = await fetch(
-        `http://localhost:7777/api/reports/${report._id}/notes`,
+        `${API_BASE_URL}/api/reports/${report._id}/notes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

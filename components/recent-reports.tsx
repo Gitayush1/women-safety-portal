@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Clock, Phone, AlertTriangle, ChevronRight } from "lucide-react"
 import { useEffect, useState, useCallback } from "react"
 import { ReportDetailModal } from "@/components/report-detail-modal"
+import { API_BASE_URL } from "@/lib/config"
 
 interface Report {
   _id: string
@@ -28,7 +29,7 @@ export function RecentReports() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:7777/api/reports", {
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
         credentials: "include",
       })
       const data = await response.json()

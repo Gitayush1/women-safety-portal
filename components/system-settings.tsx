@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 export function SystemSettings() {
   const [settings, setSettings] = useState({
@@ -45,7 +46,7 @@ export function SystemSettings() {
   const exportCSV = async () => {
     setExporting("csv")
     try {
-      const response = await fetch("http://localhost:7777/api/reports", {
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
         credentials: "include",
       })
       const data = await response.json()
@@ -100,7 +101,7 @@ export function SystemSettings() {
   const exportPDF = async () => {
     setExporting("pdf")
     try {
-      const response = await fetch("http://localhost:7777/api/reports", {
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
         credentials: "include",
       })
       const data = await response.json()

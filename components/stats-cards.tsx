@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, CheckCircle, Clock, Users } from "lucide-react"
 import { useEffect, useState } from "react"
+import { API_BASE_URL } from "@/lib/config"
 
 export function StatsCards() {
   const [stats, setStats] = useState({
@@ -15,7 +16,7 @@ export function StatsCards() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch("http://localhost:7777/api/admin/stats", {
+        const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
           credentials: "include",
         })
         const data = await response.json()
