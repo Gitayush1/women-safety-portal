@@ -3,7 +3,7 @@ services:
     name: women-safety-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --production
     startCommand: npm start
     healthCheckPath: /
     envVars:

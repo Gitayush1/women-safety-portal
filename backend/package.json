@@ -13,6 +13,7 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
+    "build": "echo 'No build step required'",
     "check:openai": "node scripts/check-openai-risk.js",
     "check:llm": "node scripts/check-openai-risk.js"
   },
