@@ -77,6 +77,16 @@ export function LoginForm() {
             </Alert>
           )}
 
+          <Alert className="bg-muted border-muted-foreground/20">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">Demo Access</span>
+              <span className="text-muted-foreground text-xs">
+                Badge: <strong>BG121</strong> | Password: <strong>haroli12345</strong>
+              </span>
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-2">
             <Label htmlFor="badgeNumber" className="text-sm">
               Badge Number
