@@ -10,11 +10,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, User, LogOut, Clock } from "lucide-react"
+import { Bell, User, LogOut, Clock, Menu } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const [officerName, setOfficerName] = useState("Officer")
   const [badgeNumber, setBadgeNumber] = useState("")
   const [currentTime, setCurrentTime] = useState("")
@@ -62,31 +66,42 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-md">
-      <div className="flex items-center justify-between px-6 py-3">
-        {/* Live clock */}
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-4 md:px-6 py-3">
+        {/* Left section: hamburger + clock */}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobile hamburger */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden h-9 w-9 p-0"
+            onClick={onMenuClick}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4 hidden sm:block" />
             <span className="text-sm font-mono font-medium tabular-nums">
               {currentTime}
             </span>
           </div>
-          <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-2">
+          <div className="h-4 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-2 hidden sm:flex">
             <span className="status-dot status-dot-online" />
             <span className="text-xs text-emerald-500 font-medium">LIVE</span>
           </div>
         </div>
 
         {/* Right section */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="relative"
+                className="relative h-9 w-9 p-0"
                 id="notification-bell"
               >
                 <Bell className="h-4 w-4" />
@@ -119,7 +134,7 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="h-6 w-px bg-border" />
+          <div className="h-6 w-px bg-border hidden sm:block" />
 
           {/* Officer Profile */}
           <DropdownMenu>

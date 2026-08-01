@@ -127,7 +127,7 @@ export function RegisterForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="latitude" className="text-sm">Latitude</Label>
               <div className="relative">

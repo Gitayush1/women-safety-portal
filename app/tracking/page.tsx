@@ -36,10 +36,10 @@ export default function TrackingPage() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-13rem)] lg:sticky lg:top-6">
-          <div className="lg:col-span-2 lg:overflow-hidden lg:flex lg:flex-col">
+          <div className="lg:col-span-2 lg:overflow-hidden lg:flex lg:flex-col min-h-[300px] sm:min-h-[400px]">
             <LiveTrackingMap viewMode={viewMode} refreshKey={refreshKey} />
           </div>
-          <div className="lg:col-span-1 lg:overflow-hidden lg:flex lg:flex-col">
+          <div className="lg:col-span-1 lg:overflow-hidden lg:flex lg:flex-col min-h-[300px] max-h-[60vh] lg:max-h-none">
             <ActiveTracking
               viewMode={viewMode}
               refreshKey={refreshKey}

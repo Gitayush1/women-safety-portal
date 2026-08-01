@@ -220,7 +220,7 @@ export function ReportDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto">
         {/* Always-present title for screen reader accessibility */}
         <DialogTitle className="sr-only">Report Details</DialogTitle>
         {loading ? (
@@ -234,7 +234,7 @@ export function ReportDetailModal({
         ) : (
           <>
             <DialogHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="text-xl font-bold flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary" />
                   {report.reportId}
@@ -251,7 +251,7 @@ export function ReportDetailModal({
 
             <div className="space-y-5 mt-2">
               {/* Status & Assignment Controls */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
                     Status
@@ -312,7 +312,7 @@ export function ReportDetailModal({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <User className="h-3.5 w-3.5" />
                     <span>{report.reporterName || "Unknown"}</span>

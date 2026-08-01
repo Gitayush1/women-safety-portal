@@ -57,21 +57,21 @@ export function TrackingControls({
   return (
     <Card>
       <CardContent className="pt-5 pb-4">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search name or phone..."
-                className="pl-10 h-9 text-sm"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-              />
-            </div>
+        <div className="flex flex-col gap-4">
+          {/* Search bar — full width on mobile */}
+          <div className="relative w-full md:max-w-xs">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search name or phone..."
+              className="pl-10 h-9 text-sm"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 text-sm">
+          {/* Controls row — wraps on mobile */}
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 md:gap-3 text-sm">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-foreground font-medium">{totalCount}</span>
@@ -86,42 +86,44 @@ export function TrackingControls({
               )}
             </div>
 
-            <div className="h-6 w-px bg-border" />
+            <div className="h-6 w-px bg-border hidden md:block" />
 
-            <Button
-              variant={autoRefresh ? "default" : "outline"}
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className="h-8 text-xs"
-            >
-              <Timer className="h-3.5 w-3.5 mr-1.5" />
-              {autoRefresh ? "Auto: ON" : "Auto: OFF"}
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={onRefresh} className="h-8 text-xs">
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Refresh
-            </Button>
-
-            <div className="flex rounded-lg border border-border overflow-hidden">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
-                variant={viewMode === "all" ? "default" : "ghost"}
+                variant={autoRefresh ? "default" : "outline"}
                 size="sm"
-                onClick={() => onViewModeChange("all")}
-                className="h-8 text-xs rounded-none border-0"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className="h-8 text-xs"
               >
-                <MapPin className="h-3.5 w-3.5 mr-1" />
-                All
+                <Timer className="h-3.5 w-3.5 mr-1.5" />
+                {autoRefresh ? "Auto: ON" : "Auto: OFF"}
               </Button>
-              <Button
-                variant={viewMode === "emergency" ? "destructive" : "ghost"}
-                size="sm"
-                onClick={() => onViewModeChange("emergency")}
-                className="h-8 text-xs rounded-none border-0"
-              >
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                SOS
+
+              <Button variant="outline" size="sm" onClick={onRefresh} className="h-8 text-xs">
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Refresh
               </Button>
+
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <Button
+                  variant={viewMode === "all" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onViewModeChange("all")}
+                  className="h-8 text-xs rounded-none border-0"
+                >
+                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                  All
+                </Button>
+                <Button
+                  variant={viewMode === "emergency" ? "destructive" : "ghost"}
+                  size="sm"
+                  onClick={() => onViewModeChange("emergency")}
+                  className="h-8 text-xs rounded-none border-0"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                  SOS
+                </Button>
+              </div>
             </div>
           </div>
         </div>
