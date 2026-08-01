@@ -17,7 +17,6 @@ interface LiveTrackingMapProps {
 }
 
 export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) {
-  const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({
     lat: 32.437867,
     lng: 77.577168,
@@ -191,52 +190,6 @@ export function LiveTrackingMap({ viewMode, refreshKey }: LiveTrackingMapProps) 
             markers={markers}
             className="h-full w-full rounded-lg border border-border overflow-hidden"
           />
-
-          {/* User overlay */}
-          {trackedUsers.length > 0 && (
-            <div className="absolute top-3 left-3 max-h-[300px] overflow-y-auto space-y-1.5 bg-card/90 backdrop-blur-md p-2.5 rounded-lg border border-border w-48">
-              {trackedUsers.slice(0, 10).map((user) => (
-                <div
-                  key={user.id}
-                  className={`p-1.5 rounded-md cursor-pointer transition-all text-xs ${
-                    selectedUser === user.id
-                      ? "ring-1 ring-primary bg-primary/10"
-                      : "hover:bg-accent/50"
-                  } ${!user.hasLocation ? "opacity-60" : ""}`}
-                  onClick={() =>
-                    setSelectedUser(selectedUser === user.id ? null : user.id)
-                  }
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        user.emergency
-                          ? "bg-red-500 animate-pulse-dot"
-                          : user.status === "warning"
-                          ? "bg-amber-500"
-                          : user.hasLocation
-                          ? "bg-emerald-500"
-                          : "bg-gray-400"
-                      }`}
-                    />
-                    <span className="font-medium truncate">{user.name}</span>
-                  </div>
-                  {selectedUser === user.id && (
-                    <div className="mt-1 text-[10px] text-muted-foreground pl-3.5">
-                      {user.hasLocation ? (
-                        <>
-                          <p>{user.location.address}</p>
-                          <p>{user.lastUpdate}</p>
-                        </>
-                      ) : (
-                        <p className="text-amber-500">No location data</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Legend */}
